@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Configs · FinTS Sidecar{% endblock %}
+{% block content %}
+<h1>Configs</h1>
+<p><a href="/configs/new"><button type="button">+ Neue Config</button></a></p>
+
+{% if not entries %}
+  <p class="empty">Keine Configs vorhanden. Lege eine neue an oder mounte das
+  Config-Volume auf <code>/data/configurations</code>.</p>
+{% else %}
+<table class="grid">
+  <thead><tr><th>Datei</th><th>Zustand</th><th>Aktionen</th></tr></thead>
+  <tbody>
+  {% for e in entries %}
+    <tr>
+      <td class="mono">{{ e.name }}</td>
+      <td>
+        {% if e.valid %}<span class="badge badge-ok">gültig</span>
+        {% else %}<span class="badge badge-fail" title="{{ e.error }}">ungültig</span>{% endif %}
+      </td>
+      <td class="actions">
+        <a href="/configs/{{ e.name }}/edit">Bearbeiten</a>
+        <a href="/configs/{{ e.name }}/persistence">Persistence</a>
+        <form method="post" action="/configs/{{ e.name }}/duplicate" class="inline"
+              onsubmit="var d=prompt('Neuer Dateiname (.json):'); if(!d){return false;} this.dest.value=d;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="dest" value="">
+          <button type="submit" class="linklike">Duplizieren</button>
+        </form>
+        <form method="post" action="/configs/{{ e.name }}/run" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit" {% if not e.valid %}disabled{% endif %}>Jetzt ausführen</button>
+        </form>
+        <a href="/configs/{{ e.name }}/delete" class="danger">Löschen</a>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

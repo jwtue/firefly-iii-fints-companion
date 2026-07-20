@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "partials/status_badge.html" import status_badge %}
+{% block title %}Übersicht · FinTS Sidecar{% endblock %}
+{% block content %}
+<h1>Übersicht</h1>
+
+{% if not rows %}
+  <p class="empty">Keine Configs gefunden unter dem Config-Verzeichnis. Lege eine
+  <code>.json</code>-Datei an oder mounte das Config-Volume auf
+  <code>/data/configurations</code>.</p>
+{% else %}
+<table class="grid">
+  <thead>
+    <tr><th>Config</th><th>Letzter Status</th><th>Umsätze</th><th>Zeitpunkt</th><th>Nächster Lauf</th><th></th></tr>
+  </thead>
+  <tbody>
+  {% for row in rows %}
+    <tr>
+      <td>
+        <a href="/runs?config={{ row.config.name }}">{{ row.config.name }}</a>
+        {% if not row.config.valid %}<span class="badge badge-fail" title="{{ row.config.error }}">ungültig</span>{% endif %}
+      </td>
+      <td>
+        {% if row.last_run %}{{ status_badge(row.last_run["status"]) }}
+        {% else %}<span class="badge badge-muted">noch kein Lauf</span>{% endif %}
+      </td>
+      <td>{{ row.last_run["transactions_sent"] if row.last_run and row.last_run["transactions_sent"] is not none else "–" }}</td>
+      <td class="mono">{{ row.last_run["started_at"] if row.last_run else "–" }}</td>
+      <td class="mono">{{ row.next_run or "–" }}</td>
+      <td>
+        <form method="post" action="/configs/{{ row.config.name }}/run" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit" {% if not row.config.valid %}disabled{% endif %}>Jetzt ausführen</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Persistence-String · {{ name }}{% endblock %}
+{% block content %}
+<p><a href="/configs">← Zu den Configs</a></p>
+<h1>FinTS-Persistence-String · <span class="mono">{{ name }}</span></h1>
+<p class="hint">Nach einem manuellen TAN-Durchlauf in der Importer-UI wird ein neuer
+Persistence-String angezeigt (Base64). Hier eintragen — das ermöglicht TAN-freie
+Folge-Logins, bis PSD2 in ca. 90 Tagen erneut eine TAN verlangt. Es wird nur dieses
+eine Feld geändert, sonst nichts an der Config.</p>
+
+{% if error %}<p class="errbox">{{ error }}</p>{% endif %}
+
+<form method="post" action="/configs/{{ name }}/persistence" class="stack">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <label>Persistence-String
+    <textarea name="bank_fints_persistence" rows="4" class="mono"
+              placeholder="eyJ2ZXJzaW9uIjoy..." required></textarea>
+  </label>
+  <button type="submit">Speichern</button>
+</form>
+{% endblock %}

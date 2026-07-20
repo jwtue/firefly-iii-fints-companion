@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "partials/status_badge.html" import status_badge %}
+{% block title %}Läufe · FinTS Sidecar{% endblock %}
+{% block content %}
+<h1>Lauf-Historie</h1>
+
+{% if not runs %}
+  <p class="empty">Noch keine Läufe.</p>
+{% else %}
+<table class="grid">
+  <thead>
+    <tr><th>#</th><th>Config</th><th>Auslöser</th><th>Status</th><th>Umsätze</th><th>Dauer</th><th>Start</th></tr>
+  </thead>
+  <tbody>
+  {% for r in runs %}
+    <tr>
+      <td><a href="/runs/{{ r["id"] }}">{{ r["id"] }}</a></td>
+      <td class="mono">{{ r["config_name"] }}</td>
+      <td>{{ r["trigger"] }}</td>
+      <td>{{ status_badge(r["status"]) }}</td>
+      <td>{{ r["transactions_sent"] if r["transactions_sent"] is not none else "–" }}</td>
+      <td>{{ "%.1f s"|format(r["duration_ms"]/1000) if r["duration_ms"] is not none else "–" }}</td>
+      <td class="mono">{{ r["started_at"] }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

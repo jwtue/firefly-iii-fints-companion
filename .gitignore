@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Test / tooling
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Runtime state (never commit — may hold run history / redacted bodies)
+/data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.db
+
+# Secrets — configs hold bank PIN / tokens in cleartext, never commit
+/data/configurations/
+*.env
+!*.env.example
+
+# Editor
+.idea/
+.vscode/
+*.swp

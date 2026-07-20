@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Zeitpläne · FinTS Sidecar{% endblock %}
+{% block content %}
+<h1>Zeitpläne</h1>
+<p class="hint">Ein Cron-Zeitplan pro Config. Ohne Zeitplan läuft eine Config nur manuell.
+Läufe werden sequenziell ausgeführt — nie zwei gleichzeitig gegen dieselbe Bank.</p>
+
+<form method="post" action="/notify/test" class="inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <button type="submit">Test-Benachrichtigung senden</button>
+</form>
+
+{% if not rows %}
+  <p class="empty">Keine Configs vorhanden.</p>
+{% else %}
+<table class="grid">
+  <thead><tr><th>Config</th><th>Zeitplan</th><th>Cron</th><th>Catch-up</th><th>Nächster Lauf</th><th></th></tr></thead>
+  <tbody>
+  {% for row in rows %}
+    <tr>
+      <td class="mono">{{ row.name }}</td>
+      <td>
+        {% if row.schedule and row.schedule.enabled %}<span class="badge badge-ok">aktiv</span>
+        {% elif row.schedule %}<span class="badge badge-muted">inaktiv</span>
+        {% else %}<span class="badge badge-muted">keiner</span>{% endif %}
+      </td>
+      <td class="mono">{{ row.schedule.cron if row.schedule else "–" }}</td>
+      <td>
+        {% if row.schedule and row.schedule.catchup_enabled %}≤ {{ row.schedule.catchup_max_days }} T
+        {% else %}aus{% endif %}
+      </td>
+      <td class="mono">{{ row.next_run or "–" }}</td>
+      <td><a href="/schedules/{{ row.name }}">Bearbeiten</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

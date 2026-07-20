@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}FinTS Sidecar{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/">FinTS Sidecar</a>
+  <nav>
+    <a href="/">Übersicht</a>
+    <a href="/configs">Configs</a>
+    <a href="/schedules">Zeitpläne</a>
+    <a href="/runs">Läufe</a>
+  </nav>
+  <div class="session">
+    {% if bypassed %}
+      <span class="badge badge-muted" title="Zugriff aus vertrauenswürdigem Netz">Netz-Bypass</span>
+    {% elif authenticated and password_auth_enabled %}
+      <form method="post" action="/logout" class="inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="linklike">Abmelden</button>
+      </form>
+    {% endif %}
+  </div>
+</header>
+
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<footer>
+  <span>Firefly FinTS Sidecar — Beobachtbarkeit für den FinTS-Importer.</span>
+</footer>
+</body>
+</html>

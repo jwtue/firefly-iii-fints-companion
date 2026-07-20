@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "partials/status_badge.html" import status_badge %}
+{% block title %}Lauf #{{ run["id"] }} · FinTS Sidecar{% endblock %}
+{% block content %}
+<p><a href="/runs">← Zur Historie</a></p>
+<h1>Lauf #{{ run["id"] }} · {{ run["config_name"] }}</h1>
+
+<dl class="detail">
+  <dt>Status</dt><dd>{{ status_badge(run["status"]) }}</dd>
+  <dt>Erkennung</dt><dd>{{ run["detection"] }}{% if run["http_status"] %} · HTTP {{ run["http_status"] }}{% endif %}</dd>
+  <dt>Auslöser</dt><dd>{{ run["trigger"] }}</dd>
+  <dt>Umsätze übertragen</dt><dd>{{ run["transactions_sent"] if run["transactions_sent"] is not none else "–" }}</dd>
+  <dt>Start</dt><dd class="mono">{{ run["started_at"] }}</dd>
+  <dt>Ende</dt><dd class="mono">{{ run["finished_at"] or "–" }}</dd>
+  <dt>Dauer</dt><dd>{{ "%.1f s"|format(run["duration_ms"]/1000) if run["duration_ms"] is not none else "–" }}</dd>
+  {% if run["window_from"] or run["window_to"] %}
+  <dt>Zeitfenster</dt><dd class="mono">{{ run["window_from"] }} → {{ run["window_to"] }}</dd>
+  {% endif %}
+</dl>
+
+{% if run["error_header"] or run["error_message"] %}
+<div class="errbox">
+  <strong>{{ run["error_header"] }}</strong>
+  {% if run["error_message"] %}<p>{{ run["error_message"] }}</p>{% endif %}
+</div>
+{% endif %}
+
+<h2>Antwort des Importers <small>(redigiert{% if run["response_bytes"] %}, Original {{ run["response_bytes"] }} Bytes{% endif %})</small></h2>
+{% if run["response_body"] %}
+<pre class="body">{{ run["response_body"] }}</pre>
+{% else %}
+<p class="empty">Kein Antwort-Body gespeichert (z.&nbsp;B. Timeout oder Verbindungsfehler).</p>
+{% endif %}
+{% endblock %}
