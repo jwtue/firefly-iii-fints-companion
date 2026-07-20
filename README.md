@@ -1,114 +1,122 @@
 # Firefly III FinTS Companion
 
-UI, scheduling and observability for the FinTS importer
-[`bnw/firefly-iii-fints-importer`](https://github.com/bnw/firefly-iii-fints-importer) —
-**without ever modifying the importer**. This companion runs as its own container
-(a sidecar) next to the importer, shares its configuration directory, and triggers
-runs over the importer's HTTP interface.
+A companion service for the FinTS importer
+[`bnw/firefly-iii-fints-importer`](https://github.com/bnw/firefly-iii-fints-importer). It adds
+a web UI, scheduling, run history and notifications on top of the importer **without modifying
+it** — it runs as its own container next to the importer, shares the importer's configuration
+directory, and triggers imports over the importer's HTTP interface.
 
-Image: `ghcr.io/jwtue/firefly-iii-fints-companion` (built by GitHub Actions, `linux/arm64`).
+Image: `ghcr.io/jwtue/firefly-iii-fints-companion` (`linux/arm64`).
 
-Full background research and architecture decisions: see [AGENTS.md](AGENTS.md).
+## What it does
 
-## Why
+- **Configuration management** — create, edit, duplicate and delete the importer's per-account
+  JSON configs through a form, with validation (90-day window limit, filename rules, required
+  headless fields) and inline help for the fields that can't be guessed.
+- **Scheduling** — a cron schedule per config. Runs execute sequentially through a global lock,
+  so two runs never hit the same bank at once. Nothing runs at container start.
+- **Run history** — every run is stored with its timestamp, trigger, outcome, duration and the
+  (redacted) importer response body, all viewable in the UI.
+- **Reliable outcome detection** — the importer answers everything with HTTP 200 and HTML, so
+  outcomes are classified from the response. Anything not recognized as a success — a missing
+  config, a TAN prompt, a fatal error, an unknown page — is recorded as a **failure**, never a
+  silent success.
+- **Notifications** — ntfy and Telegram (apprise-style URLs) on failed runs and on "TAN
+  required", plus an hourly dead-man's switch that alerts when a scheduled config stops
+  succeeding. Every outbound message is redacted.
+- **Catch-up** — after a missed run the fetch window is temporarily widened for a single run so
+  no transactions are lost, then restored (Firefly's duplicate detection absorbs the overlap).
 
-The importer's automate endpoint answers **everything** with HTTP 200 and HTML —
-success, a missing config, a TAN prompt, a fatal error. There is no machine-readable
-status. A cron-based predecessor only grepped the body for `Fatal error` and therefore
-reported "OK" for ten days of runs that never happened. This companion detects, stores,
-displays and (via notifications) reports failed runs.
+## What it does not do
 
-**Central design rule:** an unrecognized response body is a **failure**, never a
-success. That rule is encoded in [`app/importer/detect.py`](app/importer/detect.py)
-and guarded by a property test.
+- **Answer TANs.** The FinTS session lives inside the importer process, so a headless run cannot
+  complete a TAN challenge. The companion notifies that a TAN is due; the user completes it once
+  through the importer UI and pastes the new persistence string back in (a dedicated one-field
+  form exists for this). PSD2 requires this roughly every 90 days regardless.
+- **Credit-card imports.** Out of scope.
+- **Modify the importer.** It is used as an unmodified upstream image.
 
-## Status
+## How it works
 
-**M1–M5 are implemented:**
+The companion and the importer share the config directory (mounted at
+`/data/configurations` on the importer). A run is triggered with
+`GET /?automate=true&config=<name>.json`.
 
-- **M1 walking skeleton:** list configs, trigger a run manually, view the correctly
-  classified result with a redacted response body in the history.
-- **M2 scheduler:** a cron schedule per config, sequential execution via a global
-  lock, **no run at container start**. Reconcile on startup only mirrors DB → scheduler.
-- **M3 notifications:** ntfy + Telegram (apprise URL syntax), alerts on failure and
-  on "TAN required" (dedicated wording), a `notified` flag against repeats, and an
-  hourly dead-man's switch for configs that stop succeeding. Every outbound message
-  passes through the redactor.
-- **M4 config editor:** create/edit/duplicate/delete via a form, secret fields masked
-  with "leave unchanged" semantics, a regex-change warning behind an unlock toggle,
-  an audit log, and a persistence quick form.
-- **M5 catch-up:** after a detected outage the fetch window is widened in-place for a
-  single run (≤ 89 days) and restored in a `finally`; stuck runs are repaired at startup.
+Outcome detection is an adapter chain, first match wins:
 
-Open: **M0** upstream PR (done in a sibling repo, awaiting merge) and **M6** (activate
-the JSON detector via `SIDECAR_IMPORTER_SUPPORTS_JSON=true` once the PR lands).
+1. `JsonStatusDetector` — used when the importer returns a JSON status (`&format=json`).
+2. `HttpStatusDetector` — used when the response carries a real HTTP status code (≠ 200).
+3. `HtmlHeuristicDetector` — the fallback: it parses the HTML and **defaults to failure** for
+   anything it does not positively recognize as success.
 
-## Status detection
+State (run history, schedules, audit log) is kept in SQLite. Configs remain the single source
+of truth as JSON on the shared volume; no secrets are copied into the database.
 
-An adapter chain, first matching detector wins:
+## Known limitations
 
-1. `JsonStatusDetector` — active once the upstream status PR (`&format=json`) is deployed.
-2. `HttpStatusDetector` — active once responses carry a real status code (≠ 200).
-3. `HtmlHeuristicDetector` — terminal fallback, parses the HTML. **Default: failure.**
+- **The importer exposes no machine-readable status.** Detection therefore relies on the HTML
+  heuristic. If the importer is patched to return a status code / JSON, set
+  `SIDECAR_IMPORTER_SUPPORTS_JSON=true` to use it instead.
+- **90-day fetch window.** Beyond ~90 days PSD2 forces a second TAN mid-dialog that the importer
+  cannot resume, so the window is capped at 90 days (catch-up widening at 89).
+- **`description_regex_*` must not change after the first import.** Changing the description
+  format breaks Firefly's hash-based duplicate detection and creates duplicate transactions. The
+  editor renders these fields read-only behind an explicit unlock and warns about this.
+- **`bank_2fa` and `bank_2fa_device` are not guessable.** They must be copied verbatim from the
+  importer UI after a login (no umlauts in the device name).
 
-The first two are inert against today's importer (always 200, always HTML) and cost
-nothing — when the PR merges, only `SIDECAR_IMPORTER_SUPPORTS_JSON=true` needs to be set.
+## Requirements
 
-## Security
+- A running `bnw/firefly-iii-fints-importer` container reachable over HTTP.
+- The config directory shared between both containers (mounted at `/data/configurations` on the
+  importer side).
 
-The configs hold the bank PIN, the FinTS persistence string and the Firefly token **in
-cleartext**, which makes this a secret-editing application:
-
-- **Redaction from the start** ([`app/redact.py`](app/redact.py)): every stored response
-  body and every log line passes through a central redactor. A sentinel test verifies that
-  secrets never appear in any DB column, any log record, or any rendered page.
-- **Fail-closed auth:** the container only starts when either a password hash
-  (`SIDECAR_PASSWORD_HASH`) or a trusted network (`SIDECAR_TRUSTED_NETWORKS`) is
-  configured. There is no silent open state.
-- **Network bypass keyed on the direct peer**, never `X-Forwarded-For` — otherwise the
-  bypass would be spoofable via a header. If a reverse proxy sits in front, its container
-  IP is the peer; account for that deliberately.
-- No host port mapping, `read_only` container, `cap_drop: ALL`, non-root user.
-
-## Configuration
-
-All options are environment variables with the `SIDECAR_` prefix — see
-[`.env.example`](.env.example). Generate a password hash:
-
-```bash
-python -c "from app.auth import hash_password; print(hash_password('yourPassword'))"
-```
-
-## Running it
+## Running
 
 ```bash
 docker compose -f compose.example.yaml up -d
 ```
 
-The companion has no host port mapping — reach it through a reverse proxy on the shared
-network. `GET /healthz` is unauthenticated (liveness only, no data) and is suitable as a
-site monitor.
+The companion has no host port mapping; reach it through a reverse proxy on the shared network.
+`GET /healthz` is unauthenticated (liveness only, no data) and is suitable as a health check.
+
+## Configuration
+
+All options are environment variables with the `SIDECAR_` prefix — see
+[`.env.example`](.env.example) for the full list. The container refuses to start unless either a
+password (`SIDECAR_PASSWORD_HASH`) or a trusted network (`SIDECAR_TRUSTED_NETWORKS`) is
+configured. Generate a password hash with:
+
+```bash
+python -c "from app.auth import hash_password; print(hash_password('yourPassword'))"
+```
+
+## Security
+
+The configs contain the bank PIN, the FinTS persistence string and the Firefly token in
+cleartext, so the companion is treated as a secret-editing application:
+
+- Redaction runs on every stored response body, log line and notification, built from the
+  current secrets.
+- Authentication is required by default: a single-user password login, or a trusted-network
+  bypass evaluated against the direct socket peer only (never `X-Forwarded-For`).
+- No secrets are stored in the database. Password fields are masked in the UI, and an unchanged
+  password field on save preserves the stored secret.
+- The container ships read-only with `cap_drop: ALL` and a non-root user, and has no host port
+  mapping.
 
 ## Development
 
 ```bash
 python -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
-pytest                              # full test suite
+pytest
 SIDECAR_TRUSTED_NETWORKS=127.0.0.1/32 SIDECAR_BEHIND_TLS=false \
   uvicorn app.asgi:app --reload
 ```
 
 Tests run without a real bank: recorded importer HTML fixtures under
-[`tests/fixtures/importer/`](tests/fixtures/importer/) and an in-process stub
-([`tests/stub/importer.py`](tests/stub/importer.py)) drive the detector, the runner and
-the full ASGI app.
-
-## Upstream contribution (M0)
-
-Before hardening for production, a PR belongs upstream against
-`bnw/firefly-iii-fints-importer` that returns a machine-readable status in automate mode
-(a status code ≠ 200 on failure, optional JSON with `&format=json`). The companion is
-deliberately **not** blocked on it and carries the heuristic until it lands.
+[`tests/fixtures/importer/`](tests/fixtures/importer/) and an in-process importer stub drive the
+detector, the runner and the full ASGI app.
 
 ## License
 
