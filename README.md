@@ -1,111 +1,115 @@
 # Firefly III FinTS Companion
 
-Bedienoberfläche, Ablaufsteuerung und Beobachtbarkeit für den FinTS-Importer
+UI, scheduling and observability for the FinTS importer
 [`bnw/firefly-iii-fints-importer`](https://github.com/bnw/firefly-iii-fints-importer) —
-**ohne den Importer selbst anzufassen**. Dieser Companion läuft als eigener Container
-(Sidecar) neben dem Importer, teilt sich dessen Config-Verzeichnis und triggert Läufe
-über die HTTP-Schnittstelle.
+**without ever modifying the importer**. This companion runs as its own container
+(a sidecar) next to the importer, shares its configuration directory, and triggers
+runs over the importer's HTTP interface.
 
-Image: `ghcr.io/jwtue/firefly-iii-fints-companion` (per GitHub Actions gebaut, `linux/arm64`).
+Image: `ghcr.io/jwtue/firefly-iii-fints-companion` (built by GitHub Actions, `linux/arm64`).
 
-Ausführliche Vorrecherche und Architekturentscheidungen: siehe [AGENTS.md](AGENTS.md).
+Full background research and architecture decisions: see [AGENTS.md](AGENTS.md).
 
-## Warum
+## Why
 
-Der automate-Endpoint des Importers antwortet auf **alles** mit HTTP 200 und HTML —
-Erfolg, fehlende Config, TAN-Anforderung, Fatal Error. Es gibt keinen maschinenlesbaren
-Status. Ein Cron-Vorgänger prüfte nur auf `Fatal error` im Body und meldete deshalb zehn
-Tage lang „OK" für Läufe, die nie stattfanden. Der Sidecar erkennt, speichert, zeigt und
-(später) meldet Fehlläufe.
+The importer's automate endpoint answers **everything** with HTTP 200 and HTML —
+success, a missing config, a TAN prompt, a fatal error. There is no machine-readable
+status. A cron-based predecessor only grepped the body for `Fatal error` and therefore
+reported "OK" for ten days of runs that never happened. This companion detects, stores,
+displays and (via notifications) reports failed runs.
 
-**Zentrale Designregel:** Ein nicht erkannter Response-Body ist ein **Fehlschlag**, niemals
-ein Erfolg. Diese Regel ist in [`app/importer/detect.py`](app/importer/detect.py) kodiert
-und durch einen Property-Test abgesichert.
+**Central design rule:** an unrecognized response body is a **failure**, never a
+success. That rule is encoded in [`app/importer/detect.py`](app/importer/detect.py)
+and guarded by a property test.
 
-## Stand
+## Status
 
-**M1–M5 sind umgesetzt:**
+**M1–M5 are implemented:**
 
-- **M1 Durchstich:** Configs auflisten, Lauf manuell triggern, korrekt klassifiziertes
-  Ergebnis mit redigiertem Response-Body in der Historie.
-- **M2 Scheduler:** Cron-Zeitplan pro Config, sequenzielle Ausführung über einen globalen
-  Lock, **kein Lauf beim Container-Start**. Reconcile beim Start spiegelt nur DB→Scheduler.
-- **M3 Benachrichtigungen:** ntfy + Telegram (Apprise-Syntax), Alarm bei Fehler und
-  „TAN erforderlich" (eigener Wortlaut), `notified`-Flag gegen Wiederholung, Dead-Man's-Switch
-  (stündlich) für Configs, die aufhören zu laufen. Jeder ausgehende Text läuft durch den Redactor.
-- **M4 Config-Editor:** Anlegen/Bearbeiten/Duplizieren/Löschen per Formular, Secret-Felder
-  maskiert und „unverändert lassen"-Semantik, Regex-Warnung mit Entsperren, Audit-Log,
-  Persistence-Schnellformular.
-- **M5 Catch-up:** Nach erkanntem Ausfall wird das Abruffenster für einen Lauf automatisch
-  geweitet (≤ 89 Tage), im `finally` zurückgesetzt; Crash-Reparatur beim Start.
+- **M1 walking skeleton:** list configs, trigger a run manually, view the correctly
+  classified result with a redacted response body in the history.
+- **M2 scheduler:** a cron schedule per config, sequential execution via a global
+  lock, **no run at container start**. Reconcile on startup only mirrors DB → scheduler.
+- **M3 notifications:** ntfy + Telegram (apprise URL syntax), alerts on failure and
+  on "TAN required" (dedicated wording), a `notified` flag against repeats, and an
+  hourly dead-man's switch for configs that stop succeeding. Every outbound message
+  passes through the redactor.
+- **M4 config editor:** create/edit/duplicate/delete via a form, secret fields masked
+  with "leave unchanged" semantics, a regex-change warning behind an unlock toggle,
+  an audit log, and a persistence quick form.
+- **M5 catch-up:** after a detected outage the fetch window is widened in-place for a
+  single run (≤ 89 days) and restored in a `finally`; stuck runs are repaired at startup.
 
-Offen: **M0** Upstream-PR (fertig im Nachbar-Repo, wartet aufs Mergen) und **M6** (JSON-Detektor
-scharf schalten via `SIDECAR_IMPORTER_SUPPORTS_JSON=true`, sobald der PR durch ist).
+Open: **M0** upstream PR (done in a sibling repo, awaiting merge) and **M6** (activate
+the JSON detector via `SIDECAR_IMPORTER_SUPPORTS_JSON=true` once the PR lands).
 
-## Statuserkennung
+## Status detection
 
-Adapterkette, erster passender Detektor gewinnt:
+An adapter chain, first matching detector wins:
 
-1. `JsonStatusDetector` — aktiv, sobald der Upstream-Status-PR (`&format=json`) deployt ist.
-2. `HttpStatusDetector` — aktiv, sobald Antworten einen echten Statuscode (≠ 200) tragen.
-3. `HtmlHeuristicDetector` — terminaler Fallback, parst das HTML. **Default: Fehlschlag.**
+1. `JsonStatusDetector` — active once the upstream status PR (`&format=json`) is deployed.
+2. `HttpStatusDetector` — active once responses carry a real status code (≠ 200).
+3. `HtmlHeuristicDetector` — terminal fallback, parses the HTML. **Default: failure.**
 
-Die ersten beiden sind gegen den heutigen Importer (immer 200, immer HTML) inert und
-kosten nichts — beim Merge des PRs wird nur `SIDECAR_IMPORTER_SUPPORTS_JSON=true` gesetzt.
+The first two are inert against today's importer (always 200, always HTML) and cost
+nothing — when the PR merges, only `SIDECAR_IMPORTER_SUPPORTS_JSON=true` needs to be set.
 
-## Sicherheit
+## Security
 
-Die Configs enthalten Bank-PIN, FinTS-Persistence-String und Firefly-Token **im Klartext**.
-Der Sidecar ist damit eine Secret-Editing-Anwendung:
+The configs hold the bank PIN, the FinTS persistence string and the Firefly token **in
+cleartext**, which makes this a secret-editing application:
 
-- **Redaction von Anfang an** ([`app/redact.py`](app/redact.py)): jeder gespeicherte
-  Response-Body und jede Log-Zeile läuft durch einen zentralen Redactor. Ein Sentinel-Test
-  stellt sicher, dass Secrets in keiner DB-Spalte, keinem Log und keiner gerenderten Seite
-  auftauchen.
-- **Fail-closed-Auth:** Der Container startet nur, wenn entweder ein Passwort-Hash
-  (`SIDECAR_PASSWORD_HASH`) oder ein vertrauenswürdiges Netz (`SIDECAR_TRUSTED_NETWORKS`)
-  konfiguriert ist. Kein stiller offener Zustand.
-- **Netz-Bypass anhand des direkten Peers**, nie `X-Forwarded-For` — sonst wäre der Bypass
-  durch einen Header spoofbar. Läuft ein Reverse Proxy davor, ist dessen Container-IP der
-  Peer; diese Konsequenz bewusst berücksichtigen.
-- Kein Host-Port-Mapping, `read_only`-Container, `cap_drop: ALL`, Non-Root-User.
+- **Redaction from the start** ([`app/redact.py`](app/redact.py)): every stored response
+  body and every log line passes through a central redactor. A sentinel test verifies that
+  secrets never appear in any DB column, any log record, or any rendered page.
+- **Fail-closed auth:** the container only starts when either a password hash
+  (`SIDECAR_PASSWORD_HASH`) or a trusted network (`SIDECAR_TRUSTED_NETWORKS`) is
+  configured. There is no silent open state.
+- **Network bypass keyed on the direct peer**, never `X-Forwarded-For` — otherwise the
+  bypass would be spoofable via a header. If a reverse proxy sits in front, its container
+  IP is the peer; account for that deliberately.
+- No host port mapping, `read_only` container, `cap_drop: ALL`, non-root user.
 
-## Konfiguration
+## Configuration
 
-Alle Optionen über Umgebungsvariablen mit Präfix `SIDECAR_` — siehe
-[`.env.example`](.env.example). Passwort-Hash erzeugen:
+All options are environment variables with the `SIDECAR_` prefix — see
+[`.env.example`](.env.example). Generate a password hash:
 
 ```bash
-python -c "from app.auth import hash_password; print(hash_password('deinPasswort'))"
+python -c "from app.auth import hash_password; print(hash_password('yourPassword'))"
 ```
 
-## Betrieb
+## Running it
 
 ```bash
-docker compose -f compose.example.yaml up -d --build
+docker compose -f compose.example.yaml up -d
 ```
 
-Der Sidecar hat kein Host-Port-Mapping — Zugriff über einen Reverse Proxy im gemeinsamen
-Netz. `GET /healthz` ist unauthentifiziert (nur Liveness, keine Daten) und eignet sich als
-Site-Monitor.
+The companion has no host port mapping — reach it through a reverse proxy on the shared
+network. `GET /healthz` is unauthenticated (liveness only, no data) and is suitable as a
+site monitor.
 
-## Entwicklung
+## Development
 
 ```bash
-python -m venv .venv && ./.venv/Scripts/pip install -e ".[dev]"
-./.venv/Scripts/pytest            # gesamte Test-Suite
+python -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
+pytest                              # full test suite
 SIDECAR_TRUSTED_NETWORKS=127.0.0.1/32 SIDECAR_BEHIND_TLS=false \
-  ./.venv/Scripts/uvicorn app.asgi:app --reload
+  uvicorn app.asgi:app --reload
 ```
 
-Tests laufen ohne echte Bank: aufgezeichnete Importer-HTML-Fixtures unter
-[`tests/fixtures/importer/`](tests/fixtures/importer/) und ein In-Process-Stub
-([`tests/stub/importer.py`](tests/stub/importer.py)) treiben Detektor, Runner und die
-volle ASGI-App.
+Tests run without a real bank: recorded importer HTML fixtures under
+[`tests/fixtures/importer/`](tests/fixtures/importer/) and an in-process stub
+([`tests/stub/importer.py`](tests/stub/importer.py)) drive the detector, the runner and
+the full ASGI app.
 
-## Upstream-Beitrag (M0)
+## Upstream contribution (M0)
 
-Vor dem produktiven Ausbau gehört ein PR gegen `bnw/firefly-iii-fints-importer`, der im
-automate-Modus einen maschinenlesbaren Status liefert (Statuscode ≠ 200 bei Fehler, optional
-JSON bei `&format=json`). Details im Plan; der Sidecar ist bewusst **nicht** darauf
-blockiert und trägt bis dahin die Heuristik.
+Before hardening for production, a PR belongs upstream against
+`bnw/firefly-iii-fints-importer` that returns a machine-readable status in automate mode
+(a status code ≠ 200 on failure, optional JSON with `&format=json`). The companion is
+deliberately **not** blocked on it and carries the heuristic until it lands.
+
+## License
+
+MIT — see [pyproject.toml](pyproject.toml).

@@ -1,275 +1,282 @@
-# AGENTS.md — Briefing: FinTS-Importer-Sidecar
+# AGENTS.md — Briefing: FinTS Importer Companion
 
-Dieses Repo ist **leer**. Es soll ein Begleit-Container für den FinTS-Importer
-`bnw/firefly-iii-fints-importer` entstehen, der dessen fehlende Bedienoberfläche,
-Ablaufsteuerung und Beobachtbarkeit nachrüstet — **ohne den Importer selbst anzufassen**.
+This repo was **empty** at the outset. The goal is a companion container for the FinTS
+importer `bnw/firefly-iii-fints-importer` that retrofits its missing user interface,
+scheduling and observability — **without touching the importer itself**.
 
-Dieses Dokument ist die vollständige Vorrecherche. Lies es ganz, bevor du Code schreibst.
-Die Analyse wurde am 19.07.2026 gegen den damaligen `master` durchgeführt.
-
----
-
-## 1. Ausgangslage
-
-Der Nutzer betreibt ein Homelab mit Firefly III (self-hosted Finanzverwaltung) auf einem
-Raspberry Pi. Umsätze deutscher Bankkonten kommen per FinTS/HBCI über
-[`bnw/firefly-iii-fints-importer`](https://github.com/bnw/firefly-iii-fints-importer) hinein.
-
-**Warum FinTS und nicht die offiziellen Wege:** Der offizielle Firefly-Data-Importer bindet
-Banken nur über externe Aggregatoren an (GoCardless, Salt Edge) — beides Cloud-Dienste, durch
-die die Bankdaten laufen. GoCardless hat sein kostenloses Bank-Account-Data-Produkt eingestellt,
-Neuregistrierungen sind geschlossen. FinTS ist der einzige Weg, der vollständig self-hosted
-bleibt: Bank ↔ eigener Container ↔ Firefly, kein Dritter dazwischen. Das ist eine bewusste,
-nicht verhandelbare Grundentscheidung.
-
-**Der Importer ist ~1.400 LOC PHP** (12 Klassen, 11 Twig-Templates, ein Test-File). Klein genug,
-um ihn ganz zu lesen — tu das, bevor du gegen ihn integrierst.
-
-### Was am Importer nicht gut ist (Motivation für dieses Projekt)
-
-- **Er ist ein Browser-Wizard, kein Dienst.** Ablaufzustand lebt in der PHP-Session und stirbt
-  mit dem Tab. Headless-Betrieb existiert nur als angeflanschter `?automate=true`-Pfad.
-- **Kein Scheduler.** Der Container startet `php -S` und wartet. Er zieht von sich aus nie etwas.
-  Wer automatisieren will, baut sich außen einen Cron, der die automate-URL aufruft.
-- **Kein Logging, das diesen Namen verdient.** `app/Logger.php` ist eine statische Klasse mit
-  `error_log()` als einzigem Sink. Kein PSR-3, nicht mockbar, unstrukturiert, keine Redaction
-  (`Logger::trace()` über FinTS-Verkehr trägt PIN/TAN-Material ins Log).
-- **Silent Fail.** Siehe Abschnitt 3 — der wichtigste Punkt des ganzen Dokuments.
-- **Konfiguration ist roh.** JSON-Dateien mit Bank-PIN im Klartext, von Hand editiert. Mehrere
-  Felder (`bank_2fa`, `bank_2fa_device`, `bank_fints_persistence`) kann man nicht wissen, sondern
-  muss sie aus der UI eines vorherigen Laufs abschreiben.
-- **Keinerlei Authentifizierung.** Kein Basic-Auth, kein CSRF-Token. Wer den Port erreicht, sieht
-  die Config-Auswahl und kann Importe starten.
-- **`php -S` als Produktionsserver**, `display_errors=1` und `error_reporting(E_ALL)` in
-  `app/index.php` — jede uncaught Exception wirft einen Stacktrace in den Browser, und im Stack
-  liegen Bank-Zugangsdaten.
-
-Der Nutzer hat das mit dem Rest seines Homelab-Stacks verglichen und findet es zu Recht
-unterdurchschnittlich bedienbar.
+This document is the complete preliminary research. Read all of it before writing code.
+The analysis was done on 2026-07-19 against the `master` branch as it stood then.
 
 ---
 
-## 2. Architekturentscheidung — und die verworfenen Alternativen
+## 1. Starting point
 
-**Gewählt: eigenständiger Sidecar-Container.** Er teilt sich das Config-Verzeichnis per Volume
-mit dem Importer und triggert Läufe über dessen HTTP-Schnittstelle. Der Importer bleibt
-unverändertes Upstream-Image.
+The user runs a homelab with Firefly III (self-hosted personal finance) on a Raspberry Pi.
+Transactions from German bank accounts arrive via FinTS/HBCI through
+[`bnw/firefly-iii-fints-importer`](https://github.com/bnw/firefly-iii-fints-importer).
 
-Verworfen wurde:
+**Why FinTS and not the official routes:** The official Firefly Data Importer only connects
+banks through external aggregators (GoCardless, Salt Edge) — both cloud services that the
+bank data flows through. GoCardless has discontinued its free Bank Account Data product and
+closed new registrations. FinTS is the only path that stays fully self-hosted: bank ↔ your
+own container ↔ Firefly, with no third party in between. This is a deliberate, non-negotiable
+foundational decision.
 
-- **Den Importer forken und dort eine WebUI einbauen.** Das ist kein Ausbau, sondern eine
-  andere Anwendung: Es gibt keine Persistenz, kein Job-Modell, keinen Scheduler, keine
-  User-Verwaltung. Wochenlange Arbeit plus dauerhafte Divergenz zu einem Upstream, das seit
-  Dezember 2025 wieder aktiv ist (25 Commits allein in dem Monat).
-- **Alles neu schreiben.** Der Wert des Importers steckt nicht in den 1.400 LOC, sondern in den
-  einsedimentierten Bank-Eigenheiten: MT940-vs-CAMT-Fallback, `force_mt940`, TAN-Medium-Auswahl,
-  `NoPsd2TanMode` für Banken mit kaputter PSD2-Implementierung. Die offenen Issues sind ein
-  Wissensspeicher über fehlerhafte Bankenimplementierungen. Das erleidet man beim Rewrite neu,
-  mit einer einzigen Bank als Testfall.
+**The importer is ~1,400 LOC of PHP** (12 classes, 11 Twig templates, one test file). Small
+enough to read in full — do that before integrating against it.
 
-**Vorteil des Sidecars:** stabile Schnittstellen (Config-Verzeichnis + eine URL), freie
-Technologiewahl, unabhängiger Lebenszyklus, kein Rebase-Schmerz.
+### What isn't good about the importer (motivation for this project)
 
-Es gibt parallel ein **davon unabhängiges** Vorhaben, dem Importer Kreditkarten-Unterstützung
-beizubringen (`phpFinTS`-PR für DKKKU-Segmente, danach Importer-seitiger PR). **Das ist nicht
-Aufgabe dieses Repos.** Nicht vermischen.
+- **It's a browser wizard, not a service.** The flow state lives in the PHP session and dies
+  with the tab. Headless operation exists only as a bolted-on `?automate=true` path.
+- **No scheduler.** The container starts `php -S` and waits. It never pulls anything on its
+  own. Anyone who wants automation builds an external cron that calls the automate URL.
+- **No logging worthy of the name.** `app/Logger.php` is a static class with `error_log()` as
+  its only sink. No PSR-3, not mockable, unstructured, no redaction (`Logger::trace()` over
+  FinTS traffic writes PIN/TAN material into the log).
+- **Silent failure.** See section 3 — the single most important point in this document.
+- **Configuration is raw.** JSON files with the bank PIN in cleartext, edited by hand. Several
+  fields (`bank_2fa`, `bank_2fa_device`, `bank_fints_persistence`) can't be guessed; you have
+  to copy them from the UI of a previous run.
+- **No authentication whatsoever.** No basic auth, no CSRF token. Whoever reaches the port sees
+  the config picker and can start imports.
+- **`php -S` as a production server**, `display_errors=1` and `error_reporting(E_ALL)` in
+  `app/index.php` — every uncaught exception throws a stack trace into the browser, and the
+  stack holds bank credentials.
+
+The user compared this to the rest of their homelab stack and rightly finds it below par in
+usability.
 
 ---
 
-## 3. Die Schnittstelle — und ihre Schwachstelle
+## 2. Architecture decision — and the rejected alternatives
+
+**Chosen: a standalone companion container.** It shares the config directory with the importer
+via a volume and triggers runs over the importer's HTTP interface. The importer stays an
+unchanged upstream image.
+
+Rejected:
+
+- **Forking the importer and building a web UI into it.** That isn't an extension but a
+  different application: there's no persistence, no job model, no scheduler, no user
+  management. Weeks of work plus permanent divergence from an upstream that has been active
+  again since December 2025 (25 commits in that month alone).
+- **Rewriting everything.** The importer's value isn't in the 1,400 LOC but in the
+  sedimented bank quirks: MT940-vs-CAMT fallback, `force_mt940`, TAN-medium selection,
+  `NoPsd2TanMode` for banks with a broken PSD2 implementation. The open issues are a knowledge
+  store about faulty bank implementations. You'd re-suffer all of that in a rewrite, with a
+  single bank as your only test case.
+
+**Advantage of the companion:** stable interfaces (config directory + one URL), free choice of
+technology, independent lifecycle, no rebase pain.
+
+There is a **separate and independent** effort to teach the importer credit-card support (a
+`phpFinTS` PR for DKKKU segments, then an importer-side PR). **That is not this repo's job.**
+Don't mix them.
+
+---
+
+## 3. The interface — and its weak spot
 
 ### Trigger
 
 ```
-GET http://firefly-fints-importer:8080/?automate=true&config=<dateiname>.json
+GET http://firefly-fints-importer:8080/?automate=true&config=<filename>.json
 ```
 
-`<dateiname>` ist der reine Basename, keine Pfadangabe, **keine Leerzeichen** (landet unquoted
-in der URL). Voraussetzung in der Config: `choose_account_automation` gefüllt und
+`<filename>` is the plain basename, no path, **no spaces** (it lands unquoted in the URL).
+Prerequisites in the config: `choose_account_automation` filled and
 `skip_transaction_review: "true"`.
 
-### ⚠ Der Importer antwortet auf ALLES mit HTTP 200 und HTML
+### ⚠ The importer answers EVERYTHING with HTTP 200 and HTML
 
-Erfolg, Config nicht gefunden, TAN erforderlich, Bank-Timeout, PHP-Fatal-Error — immer 200,
-immer HTML. **Es gibt keinen maschinenlesbaren Status.**
+Success, config not found, TAN required, bank timeout, PHP fatal error — always 200, always
+HTML. **There is no machine-readable status.**
 
-Das ist keine Theorie. Genau daran ist der bisherige Betrieb gescheitert: Ein Cron-Sidecar rief
-täglich die automate-URL auf und prüfte den Body auf `Fatal error`. Weil das Config-Volume auf
-`/app/configurations` statt `/data/configurations` gemountet war, brach jeder Lauf mit
-`error.twig` und der Meldung „Could not find the configuration" ab — HTTP 200, kein
-`Fatal error` im Body. Der Sidecar meldete **zehn Tage lang täglich `OK` für Läufe, die nie
-stattgefunden haben.** Der Nutzer merkte es erst, weil in Firefly keine Daten ankamen.
+This isn't theory. It's exactly what the previous operation ran aground on: a cron companion
+called the automate URL daily and checked the body for `Fatal error`. Because the config
+volume was mounted at `/app/configurations` instead of `/data/configurations`, every run
+aborted with `error.twig` and the message "Could not find the configuration" — HTTP 200, no
+`Fatal error` in the body. The companion reported **`OK` daily for ten days for runs that
+never happened.** The user only noticed because no data was arriving in Firefly.
 
-Merke: Der Mount-Pfad ist inzwischen korrigiert, aber die Klasse des Fehlers bleibt. Body-Grep
-ist eine Heuristik, keine Schnittstelle.
+Note: the mount path has since been corrected, but the class of bug remains. Body grepping is a
+heuristic, not an interface.
 
-### Daraus folgt die erste Aufgabe
+### From this follows the first task
 
-**Bevor du den Sidecar baust, mach einen Upstream-PR gegen `bnw/firefly-iii-fints-importer`,
-der im automate-Modus einen maschinenlesbaren Status liefert** — HTTP-Statuscode ≠ 200 bei
-Fehler, oder eine JSON-Antwort wenn `automate=true` gesetzt ist. Das sind geschätzt 20–30 LOC,
-nützt jedem Automatisierer und hat gute Merge-Chancen bei einem aktiven Maintainer.
+**Before you build the companion, make an upstream PR against
+`bnw/firefly-iii-fints-importer` that returns a machine-readable status in automate mode** —
+an HTTP status code ≠ 200 on failure, or a JSON response when `automate=true` is set. That's an
+estimated 20–30 LOC, useful to every automator, and has good merge chances with an active
+maintainer.
 
-Der Sidecar wird dadurch von „scrapt HTML" zu „liest Status". Ohne diesen PR baust du deine
-Fehlererkennung auf demselben Sand, auf dem das Vorgängersystem eingebrochen ist.
+That turns the companion from "scrapes HTML" into "reads status". Without this PR you build your
+error detection on the same sand the predecessor system collapsed on.
 
-Solange der PR nicht durch ist: Body-Prüfung defensiv auslegen — nicht nur auf `Fatal error`,
-sondern auch auf `error_header` bzw. den `error.twig`-Titel, und positiv verifizieren
-(hat der Lauf tatsächlich Transaktionen gemeldet?) statt nur negativ auf Fehlerstrings zu prüfen.
+Until the PR lands: interpret the body check defensively — not only for `Fatal error` but also
+for `error_header` / the `error.twig` title, and verify positively (did the run actually report
+transactions?) instead of only checking negatively for error strings.
 
-### Der Mount-Pfad (nicht wiederholen)
+### The mount path (do not repeat)
 
-Das Config-Volume gehört auf **`/data/configurations`**, nicht `/app/configurations` — obwohl
-das Upstream-`docker-compose.yml` letzteres vorschlägt. Grund: Die Dateiauswahl der UI scannt
-beide Verzeichnisse, der automate-Pfad in `app/Setup.php` löst aber nur relativ
-`data/configurations/<name>` auf, und das Image setzt kein `WORKDIR` (CWD = `/`).
+The config volume belongs at **`/data/configurations`**, not `/app/configurations` — even
+though the upstream `docker-compose.yml` suggests the latter. Reason: the UI's file picker
+scans both directories, but the automate path in `app/Setup.php` only resolves
+`data/configurations/<name>` relatively, and the image sets no `WORKDIR` (CWD = `/`).
 
 ---
 
-## 4. Das Config-Format
+## 4. The config format
 
-Eine JSON-Datei pro Bankkonto. Vorlage im Homelab-Repo unter
-`env-examples/firefly-fints-config.json.example`. Geparst wird sie von
-`app/ConfigurationFactory.php` — dort steht verbindlich, welche Felder Pflicht sind.
+One JSON file per bank account. Template in the homelab repo at
+`env-examples/firefly-fints-config.json.example`. It's parsed by
+`app/ConfigurationFactory.php` — that's the authoritative source for which fields are required.
 
-| Feld | Bedeutung / Fallstricke |
+| Field | Meaning / pitfalls |
 |---|---|
-| `bank_username` / `bank_password` | Anmeldename + PIN. **Klartext-Secret.** |
-| `bank_code` | BLZ |
-| `bank_url` | FinTS-Endpoint der Bank |
-| `bank_2fa` | Code des TAN-Verfahrens. Bankspezifisch, **nicht ratbar** — die Importer-UI listet die Verfahren nach dem Login samt Code. Sonderwert `NoPsd2TanMode` für Banken ohne PSD2-TAN. |
-| `bank_2fa_device` | Name des TAN-Mediums, nur für headless nötig. **Nicht raten** — exakt den String aus `getTanMedia()` übernehmen, den die UI zeigt. Keine Umlaute. |
-| `bank_fints_persistence` | Ermöglicht TAN-freie Folge-Logins. Wird nach erfolgreichem Import in der UI angezeigt. **Secret** — erlaubt Kontozugriff ohne TAN. Base64-kodiert abgelegt. |
-| `firefly_url` | stack-intern, z.B. `http://firefly:8080` |
+| `bank_username` / `bank_password` | Login name + PIN. **Cleartext secret.** |
+| `bank_code` | Bank sort code (BLZ) |
+| `bank_url` | The bank's FinTS endpoint |
+| `bank_2fa` | Code of the TAN method. Bank-specific, **not guessable** — the importer UI lists the methods with their codes after login. Special value `NoPsd2TanMode` for banks without a PSD2 TAN. |
+| `bank_2fa_device` | Name of the TAN medium, only needed for headless. **Don't guess** — copy the exact string from `getTanMedia()` that the UI shows. No umlauts. |
+| `bank_fints_persistence` | Enables TAN-free follow-up logins. Shown in the UI after a successful import. **Secret** — allows account access without a TAN. Stored base64-encoded. |
+| `firefly_url` | Stack-internal, e.g. `http://firefly:8080` |
 | `firefly_access_token` | Firefly Personal Access Token. **Secret.** |
-| `skip_transaction_review` | `"true"` (String!) — Pflicht für headless |
-| `description_regex_match` / `_replace` | Umformatierung der Buchungstexte. **Nach dem Erst-Import nicht mehr ändern** — Format-Änderungen brechen Fireflys Hash-basierte Duplikaterkennung und erzeugen Doubletten. Wenn deine UI diese Felder editierbar macht, warne davor. |
-| `auto_submit_form_via_js` | halbautomatischer Browser-Modus |
-| `force_mt940` | erzwingt MT940 statt CAMT, falls CAMT-Parsing bei der Bank klemmt |
-| `choose_account_automation` | Pflicht für headless: `bank_account_iban`, `firefly_account_id`, `from`/`to` |
+| `skip_transaction_review` | `"true"` (a string!) — required for headless |
+| `description_regex_match` / `_replace` | Reformatting of the transaction descriptions. **Don't change after the first import** — format changes break Firefly's hash-based duplicate detection and create doubles. If your UI makes these fields editable, warn about it. |
+| `auto_submit_form_via_js` | Semi-automatic browser mode |
+| `force_mt940` | Forces MT940 instead of CAMT, in case CAMT parsing is broken at the bank |
+| `choose_account_automation` | Required for headless: `bank_account_iban`, `firefly_account_id`, `from`/`to` |
 
-**Zum Zeitfenster (`from`/`to`):** rollierend, typisch `"now - 7 days"` → `"now"`.
-**Muss ≤ 90 Tage bleiben** — ältere Umsätze verlangen PSD2-bedingt eine zweite TAN mitten im
-Dialog, an deren Fortsetzung der Importer scheitert (Session-Serialisierung verliert den
-Dialog-Zustand → Fehler 9050/9800/9010). Wenn deine UI das Fenster editierbar macht, validiere
-diese Grenze.
+**On the time window (`from`/`to`):** rolling, typically `"now - 7 days"` → `"now"`.
+**Must stay ≤ 90 days** — older transactions require, for PSD2 reasons, a second TAN in the
+middle of the dialog, which the importer fails to continue (session serialization loses the
+dialog state → errors 9050/9800/9010). If your UI makes the window editable, validate this
+limit.
 
-Beachte auch: Ein rollierendes 7-Tage-Fenster verzeiht keinen längeren Ausfall. Fällt der
-Import 10 Tage aus, sind drei Tage dauerhaft verloren, bis jemand das Fenster einmalig weitet.
-**Das ist ein starkes Argument dafür, dass dein Sidecar Ausfälle laut meldet** — und ein
-Feature-Kandidat: nach erkanntem Ausfall das Fenster für einen Lauf automatisch weiten
-(Fireflys Duplikaterkennung fängt die Überlappung ab).
-
----
-
-## 5. Aufgabenumfang
-
-### In Scope
-
-1. **Config-Verwaltung** — Anlegen, Bearbeiten, Duplizieren, Löschen der JSON-Dateien über eine
-   Weboberfläche. Formular statt Texteditor, mit Erklärungen zu den nicht-ratbaren Feldern und
-   Validierung (Zeitfenster ≤ 90 Tage, Dateiname ohne Leerzeichen, Pflichtfelder für headless).
-2. **Ablaufsteuerung** — Zeitplan pro Config, Trigger der automate-URL, sequenziell (nicht
-   parallel gegen dieselbe Bank). Der Sidecar **ersetzt** den bisherigen Cron-Container, statt
-   ihn zu verwalten — Scheduler, Trigger, Log-Speicher und Benachrichtigung an einer Stelle.
-3. **Lauf-Historie und Logs** — pro Lauf Zeitstempel, Config, Ergebnis, Dauer, Response-Body.
-   Einsehbar in der UI. Das ist der Kern des Nutzens: Der Nutzer hatte im Fehlerfall *überhaupt
-   keine* Logs.
-4. **Benachrichtigungen** — Telegram und/oder E-Mail bei fehlgeschlagenem Lauf und insbesondere
-   bei „TAN erforderlich". Statt Stille.
-
-### Explizit NICHT in Scope
-
-- **Kreditkarten-Unterstützung** — separates Vorhaben, siehe Abschnitt 2.
-- **TAN-Resume.** Der Sidecar kann *benachrichtigen*, dass eine TAN fällig ist, sie aber nicht
-  entgegennehmen: Die FinTS-Session lebt im Importer-Prozess. Versuch das nicht. Der Nutzer
-  klickt sich dann einmal durch die Importer-UI und trägt den neuen
-  `bank_fints_persistence`-String ein — **das ist der erwartete Ablauf.** PSD2 erzwingt ihn
-  ohnehin ca. alle 90 Tage.
-  Ein realistischer Komfortgewinn wäre stattdessen: Nach dem manuellen Durchlauf den neuen
-  Persistence-String bequem in der Sidecar-UI eintragen können, statt JSON von Hand zu editieren.
-- **Den Importer patchen.** Änderungen am Importer gehen als Upstream-PR, nicht in dieses Repo.
+Also note: a rolling 7-day window forgives no longer outage. If the import is down for 10 days,
+three days are permanently lost until someone widens the window once.
+**That is a strong argument for your companion to report outages loudly** — and a feature
+candidate: after a detected outage, widen the window automatically for one run (Firefly's
+duplicate detection catches the overlap).
 
 ---
 
-## 6. Sicherheit
+## 5. Scope
 
-Der Sidecar wird zur **Secret-Editing-Anwendung**: Die Configs enthalten Bank-PIN,
-FinTS-Persistence-String und Firefly-Token im Klartext. Anders als beim Importer selbst reicht
-„hängt hinter einem Reverse Proxy" hier nicht.
+### In scope
 
-- Echte Authentifizierung ist Pflicht, nicht optional.
-- Passwortfelder in der UI maskieren; PIN nie in Lauf-Logs, Fehlermeldungen oder Stacktraces
-  ausgeben. **Redaction von Anfang an einbauen**, nicht nachrüsten.
-- Response-Bodies des Importers vor dem Speichern filtern — bei `display_errors=1` können dort
-  Stacktraces mit Zugangsdaten stehen.
-- Kein Host-Port-Mapping; Zugriff nur über den Reverse Proxy.
-- Config-Verzeichnis liegt im FTP-Backup — keine zusätzlichen Klartext-Kopien anlegen.
+1. **Config management** — create, edit, duplicate, delete the JSON files through a web
+   interface. A form instead of a text editor, with explanations for the non-guessable fields
+   and validation (window ≤ 90 days, filename without spaces, required fields for headless).
+2. **Scheduling** — a schedule per config, triggering the automate URL, sequentially (not in
+   parallel against the same bank). The companion **replaces** the previous cron container
+   rather than managing it — scheduler, trigger, log storage and notification in one place.
+3. **Run history and logs** — per run: timestamp, config, result, duration, response body.
+   Viewable in the UI. This is the core of the value: in a failure the user had *no* logs at
+   all.
+4. **Notifications** — Telegram and/or email on a failed run and especially on "TAN required".
+   Instead of silence.
 
----
+### Explicitly NOT in scope
 
-## 7. Homelab-Konventionen
-
-Das Zielsystem ist `jwtue/homelab`. **Lies dort vor dem Deployment `docs/configuration.md`,
-`docs/networking.md`, `docs/volumes-and-backup.md` und `docs/firefly.md`** — die Konventionen
-sind dokumentiert, nicht erraten. Kurzfassung:
-
-- **Volumes:** Pi unter `/home/admin/docker-volumes/<stack>/...`. Keine Docker-managed Volumes.
-- **Netze:** stack-internes `default` plus externes `nginx-net` für den Reverse Proxy.
-  Container-Hostnamen funktionieren stackübergreifend.
-- **Kein Host-Port-Mapping**, Zugriff über NPM.
-- **DNS:** `.app.<ort>` für Anwendungen, `.home` für standortunabhängige Links.
-- **Homepage-Dashboard:** Der Container bekommt `homepage.*`-Labels (Gruppe, Name, Icon, `href`
-  auf die `.home`-Domain, Beschreibung, `siteMonitor`) — analog zu den bestehenden Diensten im
-  Firefly-Stack.
-- **Deployment:** Der Sidecar gehört in `docker-compose/pi/firefly.yaml`, wo Importer und
-  Cron-Container heute schon stehen. Der bestehende `firefly-fints-cron` entfällt dabei.
-- **Dokumentation mitziehen:** Bei Änderungen am Homelab-Repo sofort `README`/`docs` anpassen,
-  erledigte Checklisten-Punkte abhaken. Ausführliche Konzepte nach `docs/*.md`, nicht in die
-  `AGENTS.md` des Homelab-Repos.
-- **Git:** Branch heißt `main`, nie `master`.
+- **Credit-card support** — a separate effort, see section 2.
+- **TAN resume.** The companion can *notify* that a TAN is due, but not accept it: the FinTS
+  session lives in the importer process. Don't attempt it. The user then clicks through the
+  importer UI once and enters the new `bank_fints_persistence` string — **that is the expected
+  workflow.** PSD2 forces it anyway roughly every 90 days.
+  A realistic comfort gain instead: after the manual run, conveniently enter the new
+  persistence string in the companion UI rather than editing JSON by hand.
+- **Patching the importer.** Changes to the importer go as an upstream PR, not into this repo.
 
 ---
 
-## 8. Technologiewahl
+## 6. Security
 
-Bewusst offen gelassen — der Sidecar ist ein eigenständiger Dienst und **nicht an PHP gebunden**.
-Anforderungen: klein, ein Container, ARM-tauglich (Raspberry Pi), leichtgewichtige Persistenz
-(SQLite genügt für Lauf-Historie und Zeitplan), serverseitig gerendertes HTML reicht völlig.
-Ein SPA-Frontend wäre für den Umfang überzogen.
+The companion becomes a **secret-editing application**: the configs contain the bank PIN, the
+FinTS persistence string and the Firefly token in cleartext. Unlike with the importer itself,
+"sits behind a reverse proxy" is not enough here.
 
-Vor der Entscheidung: kurz prüfen, ob
+- Real authentication is mandatory, not optional.
+- Mask password fields in the UI; never print the PIN in run logs, error messages or stack
+  traces. **Build in redaction from the start**, don't retrofit it.
+- Filter the importer's response bodies before storing them — with `display_errors=1` they can
+  contain stack traces with credentials.
+- No host port mapping; access only through the reverse proxy.
+- The config directory is in the FTP backup — don't create additional cleartext copies.
+
+---
+
+## 7. Homelab conventions
+
+The target system is `jwtue/homelab`. **Before deployment, read `docs/configuration.md`,
+`docs/networking.md`, `docs/volumes-and-backup.md` and `docs/firefly.md` there** — the
+conventions are documented, not guessed. In short:
+
+- **Volumes:** on the Pi under `/home/admin/docker-volumes/<stack>/...`. No Docker-managed
+  volumes.
+- **Networks:** the stack-internal `default` plus the external `nginx-net` for the reverse
+  proxy. Container hostnames work across stacks.
+- **No host port mapping**, access via NPM.
+- **DNS:** `.app.<location>` for applications, `.home` for location-independent links.
+- **Homepage dashboard:** the container gets `homepage.*` labels (group, name, icon, `href` to
+  the `.home` domain, description, `siteMonitor`) — analogous to the existing services in the
+  Firefly stack.
+- **Deployment:** the companion belongs in `docker-compose/pi/firefly.yaml`, where the importer
+  and cron container already live today. The existing `firefly-fints-cron` is retired in the
+  process.
+- **Keep docs in sync:** when changing the homelab repo, update `README`/`docs` immediately and
+  check off completed checklist items. Put extensive concepts in `docs/*.md`, not in the
+  homelab repo's `AGENTS.md`.
+- **Git:** the branch is called `main`, never `master`.
+
+> Note: this project ended up as a **standalone, public repository**, independent of the
+> homelab repo. The homelab conventions above describe the intended eventual deployment target,
+> not a constraint on this repo's structure.
+
+---
+
+## 8. Technology choice
+
+Deliberately left open — the companion is a standalone service and **not tied to PHP**.
+Requirements: small, one container, ARM-capable (Raspberry Pi), lightweight persistence (SQLite
+suffices for run history and schedule), server-rendered HTML is entirely enough. An SPA
+frontend would be overkill for the scope.
+
+Before deciding: briefly check whether
 [`Gared/firefly-iii-fints-console-importer`](https://github.com/Gared/firefly-iii-fints-console-importer)
-inzwischen brauchbare Teile liefert — das Repo ging die CLI-Richtung an und war 07/2026 sehr aktiv.
+now provides usable parts — that repo went the CLI route and was very active in 07/2026.
 
 ---
 
-## 9. Empfohlene Reihenfolge
+## 9. Recommended order
 
-1. **Importer-Quelltext lesen** — `app/Setup.php`, `app/ConfigurationFactory.php`,
-   `app/index.php`, `app/Logger.php`. Das sind wenige hundert Zeilen und klärt die
-   Schnittstelle verbindlich.
-2. **Upstream-PR für maschinenlesbaren Status** (Abschnitt 3). Fundament für alles Weitere.
-3. **Minimaler Durchstich:** Configs auflisten, einen Lauf triggern, Ergebnis speichern und
-   anzeigen. Damit ist der Kernnutzen — Sichtbarkeit — schon erreicht.
-4. **Zeitplanung**, dann den alten `firefly-fints-cron` ablösen.
-5. **Benachrichtigungen.**
-6. **Config-Editor** zuletzt: der größte Sicherheitsaufwand bei geringstem Alltagsnutzen
-   (Configs ändern sich selten — außer beim Persistence-String, siehe Abschnitt 5).
-
----
-
-## 10. Offene Fragen für den Nutzer
-
-Vor Implementierungsbeginn klären, nicht raten:
-
-- Bevorzugte Sprache/Framework für den Sidecar?
-- Telegram, E-Mail oder beides? Existiert im Homelab schon ein Benachrichtigungsweg, an den
-  sich anschließen lässt?
-- Soll der Sidecar den `firefly-fints-cron` sofort ablösen oder zunächst parallel laufen?
-- Reicht Single-User-Auth (ein Passwort), oder soll er sich an bestehende Homelab-Auth anbinden?
+1. **Read the importer source** — `app/Setup.php`, `app/ConfigurationFactory.php`,
+   `app/index.php`, `app/Logger.php`. That's a few hundred lines and settles the interface
+   authoritatively.
+2. **Upstream PR for a machine-readable status** (section 3). The foundation for everything
+   else.
+3. **Minimal end-to-end slice:** list configs, trigger a run, store and display the result.
+   That already achieves the core value — visibility.
+4. **Scheduling**, then retire the old `firefly-fints-cron`.
+5. **Notifications.**
+6. **Config editor last:** the largest security effort for the least everyday value (configs
+   rarely change — except for the persistence string, see section 5).
 
 ---
 
-*Erstellt am 19.07.2026 im Rahmen der Vorrecherche. Alle Aussagen zum Importer beziehen sich auf
-den damaligen `master`-Stand — bei Abweichungen gilt der Quelltext, nicht dieses Dokument.*
+## 10. Open questions for the user
+
+Clarify before implementation, don't guess:
+
+- Preferred language/framework for the companion?
+- Telegram, email or both? Is there already a notification path in the homelab to hook into?
+- Should the companion replace `firefly-fints-cron` immediately, or run alongside it at first?
+- Is single-user auth (one password) enough, or should it tie into existing homelab auth?
+
+---
+
+*Created on 2026-07-19 as part of the preliminary research. All statements about the importer
+refer to the `master` state at that time — where they diverge, the source code, not this
+document, is authoritative.*

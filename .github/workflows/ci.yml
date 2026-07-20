@@ -1,7 +1,7 @@
 name: ci
 
-# Tests bei jedem Push/PR; Image-Bau & Push nach GHCR nur auf main und Tags.
-# Läuft auf dem selbst-gehosteten Runner (wie jwtue/homelab).
+# Test on every push/PR; build & push the image to GHCR on main and tags.
+# Runs on GitHub-hosted runners (free for public repositories).
 on:
   push:
     branches: [main]
@@ -12,30 +12,26 @@ on:
 
 permissions:
   contents: read
-  packages: write   # Nötig für ghcr.io Push
+  packages: write   # required for the ghcr.io push
 
 jobs:
   test:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Abhängigkeiten installieren (isolierte venv, Runner bleibt sauber)
-        run: |
-          python -m venv .venv
-          . .venv/bin/activate
-          pip install -e ".[dev]"
-      - name: Tests
-        run: |
-          . .venv/bin/activate
-          pytest -q
+          cache: pip
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Run tests
+        run: pytest -q
 
   build-and-push:
     needs: test
-    runs-on: self-hosted
-    # Nur bei Push auf main oder Version-Tags veröffentlichen — nie bei PRs.
+    runs-on: ubuntu-latest
+    # Publish only on pushes to main or version tags — never on pull requests.
     if: github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@v4
@@ -52,7 +48,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Docker-Metadaten (Tags/Labels)
+      - name: Docker metadata (tags/labels)
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -63,11 +59,11 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha,format=short
 
-      - name: Build & Push
-        uses: docker/build-push-action@v5
+      - name: Build & push
+        uses: docker/build-push-action@v6
         with:
           context: .
-          # arm64: Zielsystem ist der Raspberry Pi (Cross-Build via QEMU).
+          # arm64: the deployment target is a Raspberry Pi (cross-built via QEMU).
           platforms: linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
