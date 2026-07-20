@@ -1,36 +1,35 @@
 {% extends "base.html" %}
-{% block title %}Zeitpläne · FinTS Sidecar{% endblock %}
+{% block title %}{{ t('schedules.title') }} · {{ t('brand') }}{% endblock %}
 {% block content %}
-<h1>Zeitpläne</h1>
-<p class="hint">Ein Cron-Zeitplan pro Config. Ohne Zeitplan läuft eine Config nur manuell.
-Läufe werden sequenziell ausgeführt — nie zwei gleichzeitig gegen dieselbe Bank.</p>
+<h1>{{ t('schedules.title') }}</h1>
+<p class="hint">{{ t('schedules.hint') }}</p>
 
 <form method="post" action="/notify/test" class="inline">
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-  <button type="submit">Test-Benachrichtigung senden</button>
+  <button type="submit">{{ t('schedules.test_notify') }}</button>
 </form>
 
 {% if not rows %}
-  <p class="empty">Keine Configs vorhanden.</p>
+  <p class="empty">{{ t('configs.empty', path='/data/configurations')|safe }}</p>
 {% else %}
 <table class="grid">
-  <thead><tr><th>Config</th><th>Zeitplan</th><th>Cron</th><th>Catch-up</th><th>Nächster Lauf</th><th></th></tr></thead>
+  <thead><tr><th>{{ t('schedules.th.config') }}</th><th>{{ t('schedules.th.schedule') }}</th><th>{{ t('schedules.th.cron') }}</th><th>{{ t('schedules.th.catchup') }}</th><th>{{ t('schedules.th.next_run') }}</th><th></th></tr></thead>
   <tbody>
   {% for row in rows %}
     <tr>
       <td class="mono">{{ row.name }}</td>
       <td>
-        {% if row.schedule and row.schedule.enabled %}<span class="badge badge-ok">aktiv</span>
-        {% elif row.schedule %}<span class="badge badge-muted">inaktiv</span>
-        {% else %}<span class="badge badge-muted">keiner</span>{% endif %}
+        {% if row.schedule and row.schedule.enabled %}<span class="badge badge-ok">{{ t('schedule.active') }}</span>
+        {% elif row.schedule %}<span class="badge badge-muted">{{ t('schedule.inactive') }}</span>
+        {% else %}<span class="badge badge-muted">{{ t('schedule.none') }}</span>{% endif %}
       </td>
-      <td class="mono">{{ row.schedule.cron if row.schedule else "–" }}</td>
+      <td class="mono">{{ row.schedule.cron if row.schedule else t('common.none_dash') }}</td>
       <td>
-        {% if row.schedule and row.schedule.catchup_enabled %}≤ {{ row.schedule.catchup_max_days }} T
-        {% else %}aus{% endif %}
+        {% if row.schedule and row.schedule.catchup_enabled %}{{ t('schedule.catchup_days', n=row.schedule.catchup_max_days) }}
+        {% else %}{{ t('schedule.catchup_off') }}{% endif %}
       </td>
-      <td class="mono">{{ row.next_run or "–" }}</td>
-      <td><a href="/schedules/{{ row.name }}">Bearbeiten</a></td>
+      <td class="mono">{{ row.next_run or t('common.none_dash') }}</td>
+      <td><a href="/schedules/{{ row.name }}">{{ t('action.edit') }}</a></td>
     </tr>
   {% endfor %}
   </tbody>

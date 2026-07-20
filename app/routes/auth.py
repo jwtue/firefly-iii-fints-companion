@@ -9,6 +9,7 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse
 
 from ..auth import verify_password
+from ..i18n import t
 from .deps import ctx, render
 
 logger = logging.getLogger("sidecar.auth")
@@ -28,12 +29,12 @@ async def login_submit(request: Request, password: str = Form("")):
     settings = app_ctx.settings
     if not settings.password_auth_enabled:
         # No password configured — login is meaningless; only bypass grants access.
-        return render(request, "login.html", error="Password authentication is disabled.")
+        return render(request, "login.html", error=t(request, "login.pw_auth_disabled"))
 
     if not verify_password(settings.password_hash, password):
         # Uniform message; do not reveal which part failed.
         logger.warning("failed login attempt from %s", request.client.host if request.client else "?")
-        return render(request, "login.html", error="Invalid password.")
+        return render(request, "login.html", error=t(request, "login.invalid"))
 
     cookie, _csrf = app_ctx.auth.issue_session()
     response = RedirectResponse("/", status_code=302)

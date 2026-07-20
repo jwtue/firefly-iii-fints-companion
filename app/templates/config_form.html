@@ -1,15 +1,15 @@
 {% extends "base.html" %}
-{% block title %}{{ "Neue Config" if is_new else "Config bearbeiten" }} · FinTS Sidecar{% endblock %}
+{% block title %}{{ (t('form.new_title') if is_new else t('form.edit_title')) }} · {{ t('brand') }}{% endblock %}
 {% macro err(field) %}{% if errors.get(field) %}<span class="field-error">{{ errors[field] }}</span>{% endif %}{% endmacro %}
 {% block content %}
-<p><a href="/configs">← Zu den Configs</a></p>
-<h1>{{ "Neue Config" if is_new else "Config bearbeiten" }}{% if not is_new %} · <span class="mono">{{ name }}</span>{% endif %}</h1>
+<p><a href="/configs">{{ t('form.back_to_configs') }}</a></p>
+<h1>{{ t('form.new_title') if is_new else t('form.edit_title') }}{% if not is_new %} · <span class="mono">{{ name }}</span>{% endif %}</h1>
 
 <form method="post" action="{{ '/configs' if is_new else '/configs/' ~ name }}" class="stack">
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
   {% if is_new %}
-  <label>Dateiname (ohne Leerzeichen, endet auf .json)
+  <label>{{ t('form.filename') }}
     <input type="text" name="filename" class="mono" value="{{ data.get('filename', '') }}"
            placeholder="giro.json" required>
     {{ err('filename') }}
@@ -17,86 +17,83 @@
   {% endif %}
 
   <fieldset>
-    <legend>Bank-Zugang</legend>
-    <label>Anmeldename
+    <legend>{{ t('form.fs.bank_access') }}</legend>
+    <label>{{ t('form.username') }}
       <input type="text" name="bank_username" value="{{ data.get('bank_username', '') }}" required>
       {{ err('bank_username') }}
     </label>
-    <label>PIN / Passwort
+    <label>{{ t('form.password') }}
       <input type="password" name="bank_password" autocomplete="new-password"
-             placeholder="{{ 'erforderlich' if is_new else 'unverändert lassen' }}">
+             placeholder="{{ t('form.ph.required') if is_new else t('form.ph.unchanged') }}">
       {{ err('bank_password') }}
     </label>
-    <label>BLZ (bank_code)
+    <label>{{ t('form.bank_code') }}
       <input type="text" name="bank_code" class="mono" value="{{ data.get('bank_code', '') }}" required>
       {{ err('bank_code') }}
     </label>
-    <label>FinTS-URL
+    <label>{{ t('form.bank_url') }}
       <input type="text" name="bank_url" class="mono" value="{{ data.get('bank_url', '') }}" required>
       {{ err('bank_url') }}
     </label>
   </fieldset>
 
   <fieldset>
-    <legend>TAN-Verfahren</legend>
-    <p class="hint">Diese Werte sind <strong>nicht ratbar</strong> — sie stehen in der
-    Importer-UI nach dem Login und müssen wörtlich übernommen werden. Sonderwert
-    <code>NoPsd2TanMode</code> für Banken ohne PSD2-TAN.</p>
-    <label>TAN-Verfahren-Code (bank_2fa)
+    <legend>{{ t('form.fs.tan') }}</legend>
+    <p class="hint">{{ t('form.tan_help')|safe }}</p>
+    <label>{{ t('form.bank_2fa') }}
       <input type="text" name="bank_2fa" value="{{ data.get('bank_2fa', '') }}" required>
       {{ err('bank_2fa') }}
     </label>
-    <label>TAN-Medium (bank_2fa_device, keine Umlaute; nur für headless nötig)
+    <label>{{ t('form.bank_2fa_device') }}
       <input type="text" name="bank_2fa_device" value="{{ data.get('bank_2fa_device', '') }}">
       {{ err('bank_2fa_device') }}
     </label>
     {% if not is_new %}
-    <p class="hint">Persistence-String (TAN-freie Folge-Logins):
-      {% if data.get('has_persistence') %}gesetzt{% else %}nicht gesetzt{% endif %} —
-      <a href="/configs/{{ name }}/persistence">separat eintragen</a>.</p>
+    <p class="hint">{{ t('form.persist_state') }}
+      {% if data.get('has_persistence') %}{{ t('form.persist_set') }}{% else %}{{ t('form.persist_unset') }}{% endif %} —
+      <a href="/configs/{{ name }}/persistence">{{ t('form.persist_link') }}</a>.</p>
     {% endif %}
   </fieldset>
 
   <fieldset>
-    <legend>Firefly III</legend>
-    <label>Firefly-URL (stack-intern, z.B. http://firefly:8080)
+    <legend>{{ t('form.fs.firefly') }}</legend>
+    <label>{{ t('form.firefly_url') }}
       <input type="text" name="firefly_url" class="mono" value="{{ data.get('firefly_url', '') }}" required>
       {{ err('firefly_url') }}
     </label>
-    <label>Personal Access Token
+    <label>{{ t('form.firefly_token') }}
       <input type="password" name="firefly_access_token" autocomplete="new-password"
-             placeholder="{{ 'erforderlich' if is_new else 'unverändert lassen' }}">
+             placeholder="{{ t('form.ph.required') if is_new else t('form.ph.unchanged') }}">
       {{ err('firefly_access_token') }}
     </label>
   </fieldset>
 
   <fieldset>
-    <legend>Konto & Zeitfenster (headless)</legend>
-    <label>Bank-IBAN
+    <legend>{{ t('form.fs.account') }}</legend>
+    <label>{{ t('form.iban') }}
       <input type="text" name="bank_account_iban" class="mono" value="{{ data.get('bank_account_iban', '') }}" required>
       {{ err('bank_account_iban') }}
     </label>
-    <label>Firefly-Konto-ID
+    <label>{{ t('form.firefly_account_id') }}
       <input type="text" name="firefly_account_id" class="mono" value="{{ data.get('firefly_account_id', '') }}" required>
       {{ err('firefly_account_id') }}
     </label>
-    <label>Von (from)
+    <label>{{ t('form.from') }}
       <input type="text" name="from" class="mono" value="{{ data.get('from', 'now - 7 days') }}" required>
       {{ err('from') }}
     </label>
-    <label>Bis (to)
+    <label>{{ t('form.to') }}
       <input type="text" name="to" class="mono" value="{{ data.get('to', 'now') }}" required>
       {{ err('to') }}
-      <small class="hint">Fenster muss ≤ 90 Tage bleiben (PSD2 erzwingt sonst eine zweite TAN).</small>
+      <small class="hint">{{ t('form.window_help') }}</small>
     </label>
   </fieldset>
 
   <fieldset>
-    <legend>Buchungstext-Umformung <span class="badge badge-warn">mit Vorsicht</span></legend>
-    <div class="warnbox">Nach dem Erst-Import <strong>nicht mehr ändern</strong> — eine
-    Formatänderung bricht Fireflys hashbasierte Duplikaterkennung und erzeugt Doubletten.</div>
+    <legend>{{ t('form.fs.reformat') }} <span class="badge badge-warn">{{ t('form.badge.care') }}</span></legend>
+    <div class="warnbox">{{ t('form.regex_warn')|safe }}</div>
     <label class="check">
-      <input type="checkbox" id="unlock_regex"> Felder zum Bearbeiten entsperren
+      <input type="checkbox" id="unlock_regex"> {{ t('form.regex_unlock') }}
     </label>
     <label>description_regex_match
       <input type="text" name="description_regex_match" class="mono regex-field" readonly
@@ -109,20 +106,20 @@
   </fieldset>
 
   <fieldset>
-    <legend>Optionen</legend>
+    <legend>{{ t('form.fs.options') }}</legend>
     <label class="check">
       <input type="checkbox" name="force_mt940" value="1" {% if data.get('force_mt940') %}checked{% endif %}>
-      force_mt940 (MT940 statt CAMT erzwingen)
+      {{ t('form.force_mt940') }}
     </label>
     <label class="check">
       <input type="checkbox" name="auto_submit_form_via_js" value="1" {% if data.get('auto_submit_form_via_js') %}checked{% endif %}>
-      auto_submit_form_via_js
+      {{ t('form.auto_submit') }}
     </label>
     <input type="hidden" name="skip_transaction_review" value="true">
-    <p class="hint">skip_transaction_review ist für headless fest auf <code>"true"</code>.</p>
+    <p class="hint">{{ t('form.skip_review_note')|safe }}</p>
   </fieldset>
 
-  <button type="submit">{{ "Anlegen" if is_new else "Speichern" }}</button>
+  <button type="submit">{{ t('form.create') if is_new else t('form.save') }}</button>
 </form>
 
 <script>

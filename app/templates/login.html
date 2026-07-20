@@ -1,19 +1,18 @@
 {% extends "base.html" %}
-{% block title %}Anmelden · FinTS Sidecar{% endblock %}
+{% block title %}{{ t('login.title') }} · {{ t('brand') }}{% endblock %}
 {% block content %}
 <div class="login">
-  <h1>Anmelden</h1>
+  <h1>{{ t('login.title') }}</h1>
   {% if error %}<p class="errbox">{{ error }}</p>{% endif %}
   {% if password_auth_enabled %}
   <form method="post" action="/login">
-    <label>Passwort
+    <label>{{ t('login.password') }}
       <input type="password" name="password" autocomplete="current-password" autofocus>
     </label>
-    <button type="submit">Anmelden</button>
+    <button type="submit">{{ t('login.submit') }}</button>
   </form>
   {% else %}
-  <p class="hint">Passwort-Authentifizierung ist deaktiviert. Zugriff ist nur aus einem
-  vertrauenswürdigen Netz möglich (<code>SIDECAR_TRUSTED_NETWORKS</code>).</p>
+  <p class="hint">{{ t('login.disabled')|safe }}</p>
   {% endif %}
 </div>
 {% endblock %}

@@ -1,18 +1,18 @@
+{# Import this macro `with context` so `t` (the translator) is in scope. #}
 {% macro status_badge(status) -%}
-{% set labels = {
-  "running": ("läuft", "badge-running"),
-  "ok": ("OK", "badge-ok"),
-  "ok_no_transactions": ("OK · 0 Umsätze", "badge-ok-muted"),
-  "tan_required": ("TAN erforderlich", "badge-warn"),
-  "tan_device_ambiguous": ("TAN-Medium unklar", "badge-warn"),
-  "config_not_found": ("Config nicht gefunden", "badge-fail"),
-  "verification_failed": ("Verifikation fehlgeschlagen", "badge-fail"),
-  "importer_error": ("Importer-Fehler", "badge-fail"),
-  "stalled": ("Abgebrochen / unbekannt", "badge-fail"),
-  "timeout": ("Timeout", "badge-fail"),
-  "unreachable": ("Nicht erreichbar", "badge-fail"),
-  "internal_error": ("Interner Fehler", "badge-fail"),
+{% set classes = {
+  "running": "badge-running",
+  "ok": "badge-ok",
+  "ok_no_transactions": "badge-ok-muted",
+  "tan_required": "badge-warn",
+  "tan_device_ambiguous": "badge-warn",
+  "config_not_found": "badge-fail",
+  "verification_failed": "badge-fail",
+  "importer_error": "badge-fail",
+  "stalled": "badge-fail",
+  "timeout": "badge-fail",
+  "unreachable": "badge-fail",
+  "internal_error": "badge-fail",
 } %}
-{% set label, cls = labels.get(status, (status, "badge-fail")) %}
-<span class="badge {{ cls }}">{{ label }}</span>
+<span class="badge {{ classes.get(status, 'badge-fail') }}">{{ t('status.' ~ status) }}</span>
 {%- endmacro %}

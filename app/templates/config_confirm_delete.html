@@ -1,14 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Config löschen · {{ name }}{% endblock %}
+{% block title %}{{ t('delete.title') }} · {{ name }}{% endblock %}
 {% block content %}
-<h1>Config löschen</h1>
+<h1>{{ t('delete.title') }}</h1>
 <div class="errbox">
-  <p>Die Config <strong class="mono">{{ name }}</strong> und ihr Zeitplan werden
-  dauerhaft entfernt. Die JSON-Datei wird gelöscht.</p>
+  <p>{{ t('delete.warning', name='<strong class="mono">' ~ name ~ '</strong>')|safe }}</p>
 </div>
 <form method="post" action="/configs/{{ name }}/delete" class="inline">
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-  <button type="submit">Endgültig löschen</button>
+  <button type="submit">{{ t('delete.confirm') }}</button>
 </form>
-<a href="/configs" style="margin-left:1rem">Abbrechen</a>
+<a href="/configs" style="margin-left:1rem">{{ t('action.cancel') }}</a>
 {% endblock %}

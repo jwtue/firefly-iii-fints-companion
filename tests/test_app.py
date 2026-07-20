@@ -83,7 +83,7 @@ async def test_trusted_peer_bypasses_auth(tmp_path):
         async with await client_for(app, peer="10.9.9.9") as c:
             r = await c.get("/")
     assert r.status_code == 200
-    assert "Übersicht" in r.text
+    assert "Overview" in r.text  # default language is English
 
 
 async def test_spoofed_forwarded_for_does_not_bypass(tmp_path):
@@ -121,4 +121,4 @@ async def test_manual_run_of_broken_config_is_visible_failure(tmp_path):
             seed_config(tmp_path, name="missing.json")
             r = await c.post("/configs/missing.json/run", follow_redirects=False)
             detail = await c.get(r.headers["location"])
-    assert "Config nicht gefunden" in detail.text or "config_not_found" in detail.text
+    assert "config not found" in detail.text  # translated status badge (default en)

@@ -18,6 +18,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import ValidationError
 from starlette.responses import RedirectResponse
 
+from ..i18n import t
 from ..models import FILENAME_RE, FintsConfig, validate_filename
 from .deps import ctx, render
 
@@ -46,15 +47,14 @@ async def create_config(request: Request):
 
     errors: dict[str, str] = {}
     if not FILENAME_RE.match(name):
-        errors["filename"] = ("Dateiname muss zu [A-Za-z0-9._-]{1,64}.json passen — "
-                              "keine Leerzeichen, keine Pfadtrenner.")
+        errors["filename"] = t(request, "err.filename_invalid")
     elif app_ctx.store.exists(name):
-        errors["filename"] = "Eine Config mit diesem Namen existiert bereits."
+        errors["filename"] = t(request, "err.filename_exists")
 
     # On create, secrets are required.
     for field in SECRET_FIELDS[:2]:  # persistence may be empty initially
         if not (form.get(field) or "").strip():
-            errors[field] = "Pflichtfeld."
+            errors[field] = t(request, "err.required")
 
     config, model_errors = _build_config(form, existing=None)
     errors.update(model_errors)
@@ -156,7 +156,7 @@ async def save_persistence(request: Request, name: str):
     value = (form.get("bank_fints_persistence") or "").strip()
     if not value:
         return render(request, "persistence_form.html", name=name,
-                      error="Bitte den Persistence-String einfügen.")
+                      error=t(request, "persist.enter_prompt"))
     raw = app_ctx.store.read_raw(name)
     raw["bank_fints_persistence"] = value
     app_ctx.store.write_raw(name, raw)

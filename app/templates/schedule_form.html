@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Zeitplan · {{ name }}{% endblock %}
+{% block title %}{{ t('schedule.form_title') }} · {{ name }}{% endblock %}
 {% block content %}
-<p><a href="/schedules">← Zu den Zeitplänen</a></p>
-<h1>Zeitplan · <span class="mono">{{ name }}</span></h1>
+<p><a href="/schedules">{{ t('schedule.back') }}</a></p>
+<h1>{{ t('schedule.form_title') }} · <span class="mono">{{ name }}</span></h1>
 
 {% if error %}<p class="errbox">{{ error }}</p>{% endif %}
 
@@ -11,36 +11,34 @@
 
   <label class="check">
     <input type="checkbox" name="enabled" value="1" {% if schedule and schedule.enabled %}checked{% endif %}>
-    Zeitplan aktiv
+    {{ t('schedule.enabled') }}
   </label>
 
-  <label>Cron-Ausdruck (5 Felder: min std tag monat wochentag)
+  <label>{{ t('schedule.cron') }}
     <input type="text" name="cron" class="mono" required
            value="{{ schedule.cron if schedule else '0 1 * * *' }}"
            placeholder="0 1 * * *">
-    <small class="hint">Beispiel: <code>0 1 * * *</code> = täglich 01:00.</small>
+    <small class="hint">{{ t('schedule.cron_help')|safe }}</small>
   </label>
 
-  <label>Zeitzone
+  <label>{{ t('schedule.timezone') }}
     <input type="text" name="timezone" value="{{ schedule.timezone if schedule else 'Europe/Berlin' }}">
   </label>
 
   <fieldset>
-    <legend>Catch-up nach Ausfall</legend>
-    <p class="hint">Nach einem erkannten Ausfall wird das Abruffenster für einen Lauf
-    automatisch geweitet, damit keine Umsätze verloren gehen (Fireflys
-    Duplikaterkennung fängt die Überlappung ab).</p>
+    <legend>{{ t('schedule.fs.catchup') }}</legend>
+    <p class="hint">{{ t('schedule.catchup_help') }}</p>
     <label class="check">
       <input type="checkbox" name="catchup_enabled" value="1"
              {% if not schedule or schedule.catchup_enabled %}checked{% endif %}>
-      Catch-up aktiv
+      {{ t('schedule.catchup_enabled') }}
     </label>
-    <label>Maximale Weitung (Tage, ≤ 89 wegen PSD2)
+    <label>{{ t('schedule.catchup_max') }}
       <input type="number" name="catchup_max_days" min="1" max="89"
              value="{{ schedule.catchup_max_days if schedule else 60 }}">
     </label>
   </fieldset>
 
-  <button type="submit">Speichern</button>
+  <button type="submit">{{ t('schedule.save') }}</button>
 </form>
 {% endblock %}

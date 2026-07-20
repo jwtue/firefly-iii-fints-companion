@@ -103,12 +103,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if STATIC_DIR.is_dir():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    from .routes import configs, dashboard, health, notify, runs
+    from .routes import configs, dashboard, health, lang, notify, runs
     from .routes import schedules as schedule_routes
     from .routes import auth as auth_routes
 
     app.include_router(health.router)
     app.include_router(auth_routes.router)
+    app.include_router(lang.router)
     app.include_router(dashboard.router)
     app.include_router(configs.router)
     app.include_router(runs.router)

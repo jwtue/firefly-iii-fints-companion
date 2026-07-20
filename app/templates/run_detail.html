@@ -1,20 +1,20 @@
 {% extends "base.html" %}
-{% from "partials/status_badge.html" import status_badge %}
-{% block title %}Lauf #{{ run["id"] }} · FinTS Sidecar{% endblock %}
+{% from "partials/status_badge.html" import status_badge with context %}
+{% block title %}{{ t('run.title', id=run["id"], config=run["config_name"]) }} · {{ t('brand') }}{% endblock %}
 {% block content %}
-<p><a href="/runs">← Zur Historie</a></p>
-<h1>Lauf #{{ run["id"] }} · {{ run["config_name"] }}</h1>
+<p><a href="/runs">{{ t('run.back') }}</a></p>
+<h1>{{ t('run.title', id=run["id"], config=run["config_name"]) }}</h1>
 
 <dl class="detail">
-  <dt>Status</dt><dd>{{ status_badge(run["status"]) }}</dd>
-  <dt>Erkennung</dt><dd>{{ run["detection"] }}{% if run["http_status"] %} · HTTP {{ run["http_status"] }}{% endif %}</dd>
-  <dt>Auslöser</dt><dd>{{ run["trigger"] }}</dd>
-  <dt>Umsätze übertragen</dt><dd>{{ run["transactions_sent"] if run["transactions_sent"] is not none else "–" }}</dd>
-  <dt>Start</dt><dd class="mono">{{ run["started_at"] }}</dd>
-  <dt>Ende</dt><dd class="mono">{{ run["finished_at"] or "–" }}</dd>
-  <dt>Dauer</dt><dd>{{ "%.1f s"|format(run["duration_ms"]/1000) if run["duration_ms"] is not none else "–" }}</dd>
+  <dt>{{ t('run.detail.status') }}</dt><dd>{{ status_badge(run["status"]) }}</dd>
+  <dt>{{ t('run.detail.detection') }}</dt><dd>{{ run["detection"] }}{% if run["http_status"] %} · HTTP {{ run["http_status"] }}{% endif %}</dd>
+  <dt>{{ t('run.detail.trigger') }}</dt><dd>{{ run["trigger"] }}</dd>
+  <dt>{{ t('run.detail.transactions') }}</dt><dd>{{ run["transactions_sent"] if run["transactions_sent"] is not none else t('common.none_dash') }}</dd>
+  <dt>{{ t('run.detail.start') }}</dt><dd class="mono">{{ run["started_at"] }}</dd>
+  <dt>{{ t('run.detail.end') }}</dt><dd class="mono">{{ run["finished_at"] or t('common.none_dash') }}</dd>
+  <dt>{{ t('run.detail.duration') }}</dt><dd>{{ "%.1f s"|format(run["duration_ms"]/1000) if run["duration_ms"] is not none else t('common.none_dash') }}</dd>
   {% if run["window_from"] or run["window_to"] %}
-  <dt>Zeitfenster</dt><dd class="mono">{{ run["window_from"] }} → {{ run["window_to"] }}</dd>
+  <dt>{{ t('run.detail.window') }}</dt><dd class="mono">{{ run["window_from"] }} → {{ run["window_to"] }}</dd>
   {% endif %}
 </dl>
 
@@ -25,10 +25,11 @@
 </div>
 {% endif %}
 
-<h2>Antwort des Importers <small>(redigiert{% if run["response_bytes"] %}, Original {{ run["response_bytes"] }} Bytes{% endif %})</small></h2>
+<h2>{{ t('run.response.title') }}
+  <small>{{ t('run.response.note', orig=(t('run.response.orig_bytes', n=run["response_bytes"]) if run["response_bytes"] else '')) }}</small></h2>
 {% if run["response_body"] %}
 <pre class="body">{{ run["response_body"] }}</pre>
 {% else %}
-<p class="empty">Kein Antwort-Body gespeichert (z.&nbsp;B. Timeout oder Verbindungsfehler).</p>
+<p class="empty">{{ t('run.response.none') }}</p>
 {% endif %}
 {% endblock %}

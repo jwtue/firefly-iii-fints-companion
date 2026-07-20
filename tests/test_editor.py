@@ -86,7 +86,7 @@ async def test_create_rejects_bad_filename(tmp_path):
         async with await client_for(app) as c:
             r = await c.post("/configs", data=base_form(filename="has space.json"))
     assert r.status_code == 200
-    assert "Leerzeichen" in r.text  # re-rendered form with error
+    assert "no spaces" in r.text  # re-rendered form with error (default en)
     assert not (tmp_path / "configs" / "has space.json").exists()
 
 

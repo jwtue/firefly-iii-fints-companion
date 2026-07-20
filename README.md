@@ -73,12 +73,22 @@ of truth as JSON on the shared volume; no secrets are copied into the database.
 
 ## Running
 
+Pull the published image:
+
+```bash
+docker pull ghcr.io/jwtue/firefly-iii-fints-companion:latest
+```
+
+or bring it up next to the importer with the example compose file:
+
 ```bash
 docker compose -f compose.example.yaml up -d
 ```
 
 The companion has no host port mapping; reach it through a reverse proxy on the shared network.
 `GET /healthz` is unauthenticated (liveness only, no data) and is suitable as a health check.
+The UI is bilingual (English/German); the language follows `Accept-Language` and can be switched
+in the header.
 
 ## Configuration
 
@@ -117,6 +127,16 @@ SIDECAR_TRUSTED_NETWORKS=127.0.0.1/32 SIDECAR_BEHIND_TLS=false \
 Tests run without a real bank: recorded importer HTML fixtures under
 [`tests/fixtures/importer/`](tests/fixtures/importer/) and an in-process importer stub drive the
 detector, the runner and the full ASGI app.
+
+## Versioning
+
+The project follows [Semantic Versioning](https://semver.org/). A git tag `vX.Y.Z` triggers a
+CI build that publishes the image tagged `X.Y.Z`, `X.Y` and `latest`. Notable changes are
+recorded in [CHANGELOG.md](CHANGELOG.md).
+
+## Built with Claude Code
+
+This project was created and is maintained with [Claude Code](https://claude.com/claude-code).
 
 ## License
 

@@ -124,7 +124,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
-        is_public = path == "/healthz" or path == "/login" or path.startswith("/static")
+        is_public = (
+            path == "/healthz"
+            or path == "/login"
+            or path.startswith("/static")
+            or path.startswith("/lang/")  # language switch works pre-login too
+        )
 
         bypassed = self.auth.peer_is_trusted(request)
         session = self.auth.load_session(request)
