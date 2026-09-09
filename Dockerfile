@@ -1,8 +1,11 @@
 # FrankenPHP: a single production-grade process serving the app — not the PHP dev server.
 FROM dunglas/frankenphp:1-php8.4
 
-# pdo_sqlite for the state database; the rest of the runtime is in the base image.
-RUN install-php-extensions pdo_sqlite
+# unzip/git let Composer extract packages; pdo_sqlite for the state database, zip for extraction.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends unzip git \
+    && rm -rf /var/lib/apt/lists/* \
+    && install-php-extensions pdo_sqlite zip
 
 WORKDIR /app
 
