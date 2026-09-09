@@ -42,6 +42,10 @@ final class Container
 {
     public static function build(): ContainerInterface
     {
+        // Evaluate cron schedules and 'now' in the configured timezone (PHP defaults to UTC and does
+        // not honour the TZ environment variable on its own). Stored timestamps stay UTC.
+        date_default_timezone_set(getenv('TZ') ?: 'UTC');
+
         $builder = new ContainerBuilder();
         $builder->addDefinitions([
             'config.database_path' => getenv('SIDECAR_DATABASE_PATH') ?: '/data/sidecar/sidecar.sqlite',
