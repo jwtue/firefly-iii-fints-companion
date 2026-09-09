@@ -9,6 +9,8 @@ triggers a build tagged `X.Y.Z`, `X.Y` and `latest`.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-09
+
 ### Changed
 - **Reimplemented in PHP (Slim 4, Twig, SQLite, served by FrankenPHP)**, replacing the initial
   Python implementation, to stay close to the importer's platform for a possible future merge.
@@ -54,5 +56,6 @@ First tagged release.
   peer only), a redaction chokepoint, and no secrets stored in the database.
 - CI on GitHub-hosted runners: tests, then a `linux/arm64` image published to GHCR.
 
-[Unreleased]: https://github.com/jwtue/firefly-iii-fints-companion/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/jwtue/firefly-iii-fints-companion/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/jwtue/firefly-iii-fints-companion/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jwtue/firefly-iii-fints-companion/releases/tag/v0.1.0
