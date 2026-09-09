@@ -170,6 +170,11 @@ return [
     'settings.bot_token' => 'Bot-Token',
     'settings.chat_id' => 'Chat-ID',
     'settings.telegram_hint' => 'Bot-Token leer lassen, um Benachrichtigungen zu deaktivieren. Alarme bei fehlgeschlagenen Läufen und bei „TAN erforderlich".',
+    'settings.telegram_guide' => 'Telegram einrichten – so geht’s',
+    'settings.telegram_guide_1' => 'In Telegram @BotFather öffnen, /newbot senden und den Schritten folgen. Am Ende erhältst du einen Bot-Token.',
+    'settings.telegram_guide_2' => 'Einen Chat mit dem neuen Bot öffnen und ihm irgendeine Nachricht senden (z. B. /start) — ein Bot kann dir erst schreiben, nachdem du ihm zuerst geschrieben hast.',
+    'settings.telegram_guide_3' => 'Chat-ID ermitteln: @userinfobot anschreiben, oder https://api.telegram.org/bot<token>/getUpdates öffnen und den Wert "chat":{"id": …} ablesen.',
+    'settings.telegram_guide_4' => 'Bot-Token und Chat-ID oben eintragen und speichern.',
     'settings.env_fixed' => 'Durch die Umgebung festgelegt.',
 
     // Flash-Meldungen

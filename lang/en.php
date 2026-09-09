@@ -170,6 +170,11 @@ return [
     'settings.bot_token' => 'Bot token',
     'settings.chat_id' => 'Chat ID',
     'settings.telegram_hint' => 'Leave the bot token blank to disable notifications. Alerts fire on failed runs and on “TAN required”.',
+    'settings.telegram_guide' => 'How to set up Telegram',
+    'settings.telegram_guide_1' => 'In Telegram, open @BotFather, send /newbot and follow the prompts. It gives you a bot token.',
+    'settings.telegram_guide_2' => 'Open a chat with your new bot and send it any message (e.g. /start) — a bot can only message you after you have written to it first.',
+    'settings.telegram_guide_3' => 'Get your chat ID: message @userinfobot, or open https://api.telegram.org/bot<token>/getUpdates and read the "chat":{"id": …} value.',
+    'settings.telegram_guide_4' => 'Enter the bot token and chat ID above and save.',
     'settings.env_fixed' => 'Fixed by the environment.',
 
     // Flash messages

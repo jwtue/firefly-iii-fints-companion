@@ -35,6 +35,16 @@
             <input type="text" id="telegram_chat_id" name="telegram_chat_id" value="{{ values.telegram_chat_id }}"
                    {{ from_env.telegram_chat_id ? 'readonly' }}>
             <div class="hint">{{ t('settings.telegram_hint') }}</div>
+
+            <details class="guide">
+                <summary>{{ t('settings.telegram_guide') }}</summary>
+                <ol>
+                    <li>{{ t('settings.telegram_guide_1') }}</li>
+                    <li>{{ t('settings.telegram_guide_2') }}</li>
+                    <li>{{ t('settings.telegram_guide_3') }}</li>
+                    <li>{{ t('settings.telegram_guide_4') }}</li>
+                </ol>
+            </details>
         </div>
 
         <div class="btn-row"><button class="btn primary" type="submit">{{ t('action.save') }}</button></div>
