@@ -36,6 +36,9 @@ Here the model is normalized:
 
 ## What it does
 
+- **Adopt an existing importer setup** — on first run it scans the importer's config files and
+  reconstructs them as logins and accounts (files sharing a bank access are grouped into one login,
+  the persistence string carries over), with a preview before anything is created.
 - **Logins & accounts** — manage both through forms, with validation (≤ 90-day window, filename rules,
   cron syntax) and inline help for the fields that cannot be guessed.
 - **Scheduling** — a cron schedule per account. A dedicated scheduler process runs due imports

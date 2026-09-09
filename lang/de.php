@@ -140,6 +140,21 @@ return [
     'status.running' => 'läuft',
     'status.never' => 'nie gelaufen',
 
+    // Übernahme eines bestehenden Importer-Setups
+    'import.title' => 'Aus Importer übernehmen',
+    'import.banner' => '{count} bestehende Importer-Konfiguration(en) zur Übernahme gefunden.',
+    'import.heading' => 'Bestehendes Importer-Setup übernehmen',
+    'import.intro' => 'Diese bestehenden Importer-Konfigurationen können übernommen werden. Konten mit demselben Bank-Zugang werden zu einem Login zusammengefasst; der Persistence-String wird mitübernommen.',
+    'import.none' => 'Im Config-Verzeichnis wurden keine übernehmbaren Konfigurationen gefunden.',
+    'import.logins_h' => 'Anzulegende Logins',
+    'import.accounts_h' => 'Anzulegende Konten',
+    'import.firefly_found' => 'Eine Firefly-Verbindung wurde erkannt und wird übernommen, falls noch keine gesetzt ist.',
+    'import.firefly_missing' => 'In den Dateien wurde keine Firefly-Verbindung gefunden — danach unter Einstellungen setzen.',
+    'import.skipped_h' => 'Übersprungene Dateien',
+    'import.already_h' => 'Bereits übernommen',
+    'import.warnings_h' => 'Warnungen',
+    'import.button' => 'Jetzt übernehmen',
+
     // Einstellungen
     'settings.title' => 'Einstellungen',
     'settings.importer_h' => 'Importer',
@@ -174,6 +189,8 @@ return [
     'flash.busy' => 'Es läuft bereits ein Import. Bitte gleich erneut versuchen.',
     'flash.run_start_error' => 'Lauf konnte nicht gestartet werden: {error}',
     'flash.settings_saved' => 'Einstellungen gespeichert.',
+    'flash.import_done' => '{logins} Login(s) und {accounts} Konto(en) übernommen.',
+    'flash.import_nothing' => 'Nichts zu übernehmen.',
     'flash.session_expired' => 'Die Sitzung ist abgelaufen. Bitte erneut versuchen.',
 
     // Validierungsfehler

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http;
 
+use App\Config\ConfigImporter;
 use App\Model\AccountRepository;
 use App\Model\LoginRepository;
 use App\Model\RunRepository;
@@ -20,6 +21,7 @@ final class DashboardController
         private readonly AccountRepository $accounts,
         private readonly RunRepository $runs,
         private readonly Settings $settings,
+        private readonly ConfigImporter $importer,
     ) {
     }
 
@@ -31,9 +33,14 @@ final class DashboardController
         }
         unset($account);
 
+        $loginCount = count($this->logins->all());
+        // On first setup (no logins yet), offer to adopt an existing importer configuration.
+        $importable = $loginCount === 0 ? count($this->importer->preview()['accounts']) : 0;
+
         return $this->view->render($response, 'dashboard.twig', [
             'accounts' => $accounts,
-            'login_count' => count($this->logins->all()),
+            'login_count' => $loginCount,
+            'importable' => $importable,
             'recent_runs' => $this->runs->recent(15),
             'firefly_configured' => $this->settings->get('firefly_url') !== '' && $this->settings->get('firefly_token') !== '',
             'importer_configured' => $this->settings->get('importer_url') !== '',

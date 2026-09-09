@@ -90,7 +90,7 @@ importer required.
 ```
 public/index.php     web entrypoint (FrankenPHP)
 bin/scheduler.php    scheduler process
-src/Config/          renderer, writer, validator, sync
+src/Config/          renderer, writer, validator, sync, importer (adopt existing configs)
 src/Importer/        transport, client, outcome detector
 src/Model/           login/account/run repositories
 src/Runner/          the run orchestration + missed-run catch-up

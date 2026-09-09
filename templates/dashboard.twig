@@ -11,6 +11,13 @@
         </div>
     {% endif %}
 
+    {% if importable > 0 %}
+        <div class="flash success">
+            {{ t('import.banner', { count: importable }) }}
+            <a href="/import">{{ t('import.title') }}</a>
+        </div>
+    {% endif %}
+
     <div class="card">
         <div class="btn-row">
             <a class="btn primary" href="/accounts/new">{{ t('dashboard.new_account') }}</a>

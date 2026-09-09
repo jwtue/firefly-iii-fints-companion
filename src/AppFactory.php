@@ -10,6 +10,7 @@ use App\Http\AuthController;
 use App\Http\CsrfMiddleware;
 use App\Http\DashboardController;
 use App\Http\HealthController;
+use App\Http\ImportController;
 use App\Http\LangController;
 use App\Http\LocaleMiddleware;
 use App\Http\LoginsController;
@@ -96,6 +97,9 @@ final class AppFactory
 
         $app->get('/runs', [RunsController::class, 'index']);
         $app->get('/runs/{id}', [RunsController::class, 'show']);
+
+        $app->get('/import', [ImportController::class, 'index']);
+        $app->post('/import', [ImportController::class, 'apply']);
 
         $app->get('/settings', [SettingsController::class, 'edit']);
         $app->post('/settings', [SettingsController::class, 'update']);

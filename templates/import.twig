@@ -1,0 +1,68 @@
+{% extends 'layout.twig' %}
+{% block title %}{{ t('import.title') }} — {{ t('nav.brand') }}{% endblock %}
+{% block content %}
+    <h1>{{ t('import.heading') }}</h1>
+
+    {% if plan.accounts is empty %}
+        <div class="card"><p class="muted">{{ t('import.none') }}</p></div>
+    {% else %}
+        <p class="muted">{{ t('import.intro') }}</p>
+
+        {% for w in plan.warnings %}<div class="flash warning">{{ w }}</div>{% endfor %}
+
+        <div class="card">
+            <h2>{{ t('import.logins_h') }}</h2>
+            <table>
+                <tr><th>{{ t('loginform.name') }}</th><th>{{ t('logins.col_bank') }}</th><th>{{ t('logins.col_accounts') }}</th><th>{{ t('logins.col_reauth') }}</th></tr>
+                {% for l in plan.logins %}
+                <tr>
+                    <td><strong>{{ l.name }}</strong></td>
+                    <td>{{ l.bank_code }}<br><span class="muted">{{ l.bank_username }}</span></td>
+                    <td>{{ l.account_count }}</td>
+                    <td>{% if l.fints_persistence %}<span class="badge ok">✓</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>{{ t('import.accounts_h') }}</h2>
+            <table>
+                <tr><th>{{ t('col.account') }}</th><th>{{ t('col.target') }}</th></tr>
+                {% for a in plan.accounts %}
+                <tr>
+                    <td><strong>{{ a.name }}</strong><br><span class="muted">{{ a.slug }}.json</span></td>
+                    <td>
+                        {% if a.selector_type == 'number' %}{{ t('accounts.card_prefix') }} {{ a.bank_account_number }}
+                        {% else %}{{ a.bank_account_iban }}{% endif %}
+                        <span class="muted">{{ t('accounts.to_firefly', { id: a.firefly_account_id }) }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <div class="card">
+            {% if plan.firefly_token_present %}
+                <p class="muted">{{ t('import.firefly_found') }} {% if plan.firefly_url %}<code>{{ plan.firefly_url }}</code>{% endif %}</p>
+            {% else %}
+                <p class="muted">{{ t('import.firefly_missing') }}</p>
+            {% endif %}
+
+            {% if plan.already is not empty %}
+                <p class="hint">{{ t('import.already_h') }}: {{ plan.already|join(', ') }}</p>
+            {% endif %}
+            {% if plan.skipped is not empty %}
+                <p class="hint">{{ t('import.skipped_h') }}: {{ plan.skipped|join(', ') }}</p>
+            {% endif %}
+        </div>
+
+        <form method="post" action="/import">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <div class="btn-row">
+                <button class="btn primary" type="submit">{{ t('import.button') }}</button>
+                <a class="btn" href="/">{{ t('action.cancel') }}</a>
+            </div>
+        </form>
+    {% endif %}
+{% endblock %}

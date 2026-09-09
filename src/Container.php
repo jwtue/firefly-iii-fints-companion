@@ -6,7 +6,9 @@ namespace App;
 
 use App\Auth\Auth;
 use App\Auth\AuthMiddleware;
+use App\Config\ConfigImporter;
 use App\Config\ConfigWriter;
+use App\Model\LoginRepository;
 use App\Support\Cidr;
 use App\Importer\GuzzleTransport;
 use App\Importer\ImporterClient;
@@ -60,6 +62,12 @@ final class Container
             }),
 
             ConfigWriter::class => factory(static fn (ContainerInterface $c) => new ConfigWriter($c->get('config.config_dir'))),
+            ConfigImporter::class => factory(static fn (ContainerInterface $c) => new ConfigImporter(
+                $c->get('config.config_dir'),
+                $c->get(LoginRepository::class),
+                $c->get(AccountRepository::class),
+                $c->get(Settings::class),
+            )),
             Lock::class         => factory(static fn (ContainerInterface $c) => new Lock($c->get('config.lock_file'))),
             RunnerInterface::class => get(Runner::class),
             DeadMansSwitch::class => factory(static fn (ContainerInterface $c) => new DeadMansSwitch(

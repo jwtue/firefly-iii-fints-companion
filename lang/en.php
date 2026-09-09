@@ -140,6 +140,21 @@ return [
     'status.running' => 'running',
     'status.never' => 'never run',
 
+    // Import from an existing importer setup
+    'import.title' => 'Import from importer',
+    'import.banner' => 'Found {count} existing importer configuration(s) to adopt.',
+    'import.heading' => 'Import an existing importer setup',
+    'import.intro' => 'These existing importer configurations can be adopted. Accounts that share the same bank access are grouped into one login; the persistence string carries over.',
+    'import.none' => 'No importable configurations were found in the config directory.',
+    'import.logins_h' => 'Logins to create',
+    'import.accounts_h' => 'Accounts to create',
+    'import.firefly_found' => 'A Firefly connection was detected and will be adopted if none is set yet.',
+    'import.firefly_missing' => 'No Firefly connection was found in the files — set it under Settings afterwards.',
+    'import.skipped_h' => 'Skipped files',
+    'import.already_h' => 'Already imported',
+    'import.warnings_h' => 'Warnings',
+    'import.button' => 'Import now',
+
     // Settings
     'settings.title' => 'Settings',
     'settings.importer_h' => 'Importer',
@@ -174,6 +189,8 @@ return [
     'flash.busy' => 'Another import is currently running. Please try again shortly.',
     'flash.run_start_error' => 'Could not start the run: {error}',
     'flash.settings_saved' => 'Settings saved.',
+    'flash.import_done' => 'Imported {logins} login(s) and {accounts} account(s).',
+    'flash.import_nothing' => 'Nothing to import.',
     'flash.session_expired' => 'Your session expired. Please try again.',
 
     // Validation errors

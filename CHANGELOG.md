@@ -14,6 +14,8 @@ triggers a build tagged `X.Y.Z`, `X.Y` and `latest`.
   Python implementation, to stay close to the importer's platform for a possible future merge.
 
 ### Added
+- **Adopt an existing importer setup:** on first run, scan the importer's config files and reconstruct
+  them as logins and accounts (shared bank access grouped into one login), with a preview.
 - **Shared bank logins.** Credentials and the TAN setup are modeled once as a *login*; each account
   import *inherits* a login and adds only account-specific fields. Re-authentication updates the
   persistence string on the login and propagates to every inheriting account. The importer's flat
