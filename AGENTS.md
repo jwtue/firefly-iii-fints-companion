@@ -72,7 +72,8 @@ handles. Never report success unless it is positively recognized.
 
 The companion is a secret-editing application (bank PIN, persistence string, Firefly token):
 
-- Authentication is mandatory and enforced at startup (single-user password).
+- Authentication is mandatory and enforced at startup (single-user password). An optional
+  trusted-network bypass is matched against the direct socket peer only, never `X-Forwarded-For`.
 - Secrets are never sent to the browser; an empty field on save keeps the stored value.
 - Redaction (`Redactor`) runs on every stored response excerpt and every notification, built from the
   current secrets — the importer can echo credentials in a stack trace with `display_errors` on.
@@ -92,11 +93,17 @@ bin/scheduler.php    scheduler process
 src/Config/          renderer, writer, validator, sync
 src/Importer/        transport, client, outcome detector
 src/Model/           login/account/run repositories
-src/Runner/          the run orchestration
-src/Scheduler/       cron due-decision
+src/Runner/          the run orchestration + missed-run catch-up
+src/Scheduler/       cron due-decision + dead-man's switch
 src/Notify/          Telegram + null notifier
-src/Http/            controllers + middleware
+src/Http/            controllers + middleware (auth, CSRF, locale)
 src/Auth/, src/Support/
 templates/           Twig views
+lang/                en.php / de.php message catalogs (bilingual UI)
 tests/
 ```
+
+Reliability & UX built on the above: a **dead-man's switch** (`DeadMansSwitch`) alerts on the absence
+of success, not just on failure; **catch-up** (`CatchUp`) widens the window for one run after an
+outage; the UI is **bilingual** (English/German) via a small `Translator` and per-request locale
+resolution, with flash and validation messages carried as keys and translated at render time.

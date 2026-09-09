@@ -1,13 +1,13 @@
 {% extends 'layout.twig' %}
-{% block title %}Runs — FinTS Companion{% endblock %}
+{% block title %}{{ t('runs.title') }} — {{ t('nav.brand') }}{% endblock %}
 {% block content %}
-    <h1>Run history</h1>
+    <h1>{{ t('runs.title') }}</h1>
     <div class="card">
         {% if runs is empty %}
-            <p class="muted">No runs yet.</p>
+            <p class="muted">{{ t('runs.none') }}</p>
         {% else %}
         <table>
-            <tr><th>Started</th><th>Account</th><th>Trigger</th><th>Status</th><th>Txns</th><th>Detail</th></tr>
+            <tr><th>{{ t('runs.col_started') }}</th><th>{{ t('col.account') }}</th><th>{{ t('runs.col_trigger') }}</th><th>{{ t('col.status') }}</th><th>{{ t('runs.col_txns') }}</th><th>{{ t('col.detail') }}</th></tr>
             {% for r in runs %}
             <tr>
                 <td>{{ r.started_at }}</td>

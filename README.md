@@ -47,8 +47,13 @@ Here the model is normalized:
   status: a JSON body, then a real HTTP status code, then an HTML heuristic that classifies as success
   **only** on a recognized “Import finished” page and treats everything else as a failure.
 - **Notifications** — Telegram alerts on failed runs and on “TAN required”. Every message is redacted.
+- **Dead-man's switch** — alerts when a scheduled account has *not* succeeded when it should have,
+  catching silent gaps (a dead scheduler, an account that stopped running) that failure alerts miss.
+- **Missed-run catch-up** — after an outage the fetch window is widened for a single run to cover the
+  gap (capped at the 90-day limit); Firefly's duplicate detection absorbs the overlap.
 - **Re-authentication** — a one-field form to paste the new persistence string; it propagates to all
   accounts of the login.
+- **Bilingual UI** — English and German, switchable in the header (cookie > Accept-Language).
 
 ## What it does not do
 
@@ -87,16 +92,19 @@ unauthenticated (liveness only). Run the scheduler as a second container from th
 ## Configuration
 
 All options are environment variables with the `SIDECAR_` prefix — see [`.env.example`](.env.example).
-The container refuses to start unless a password (`SIDECAR_PASSWORD` or `SIDECAR_PASSWORD_HASH`) is
-set. The Firefly connection, importer URL and Telegram credentials can be set either by environment
-variable or in the Settings page; a value fixed by the environment is shown read-only.
+The container refuses to start unless access is protected — a password (`SIDECAR_PASSWORD` or
+`SIDECAR_PASSWORD_HASH`) or a trusted network (`SIDECAR_TRUSTED_NETWORKS`). The Firefly connection,
+importer URL and Telegram credentials can be set either by environment variable or in the Settings
+page; a value fixed by the environment is shown read-only.
 
 ## Security
 
 The logins hold the bank PIN, the FinTS persistence string and (globally) the Firefly token, so the
 companion is a secret-editing application:
 
-- Authentication is required and enforced at startup.
+- Authentication is required and enforced at startup. An optional trusted-network bypass
+  (`SIDECAR_TRUSTED_NETWORKS`) is evaluated against the **direct socket peer only**, never
+  `X-Forwarded-For`; behind a reverse proxy the peer is the proxy, so use it deliberately.
 - Secrets are never sent to the browser; an empty password field on save keeps the stored value.
 - Every stored response excerpt and every notification is passed through redaction built from the
   current secrets.

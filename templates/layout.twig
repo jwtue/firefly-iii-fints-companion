@@ -18,6 +18,8 @@
         nav a:hover { background:var(--bg); }
         nav a.active { background:var(--brand); color:#fff; }
         nav .spacer { margin-left:auto; }
+        nav .lang a { padding:.2rem .45rem; font-size:.8rem; color:var(--muted); }
+        nav .lang a.active { background:var(--line); color:var(--ink); }
         main { max-width:960px; margin:1.5rem auto; padding:0 1rem; }
         h1 { font-size:1.4rem; margin:.2rem 0 1rem; }
         h2 { font-size:1.1rem; margin:1.5rem 0 .6rem; }
@@ -57,23 +59,28 @@
 {% if show_nav is not defined or show_nav %}
 <header>
     <nav>
-        <span class="brand">FinTS Companion</span>
-        <a href="/" class="{{ current_path() == '/' ? 'active' }}">Dashboard</a>
-        <a href="/logins" class="{{ current_path() starts with '/logins' ? 'active' }}">Logins</a>
-        <a href="/accounts" class="{{ current_path() starts with '/accounts' ? 'active' }}">Accounts</a>
-        <a href="/runs" class="{{ current_path() starts with '/runs' ? 'active' }}">Runs</a>
-        <a href="/settings" class="{{ current_path() starts with '/settings' ? 'active' }}">Settings</a>
+        <span class="brand">{{ t('nav.brand') }}</span>
+        <a href="/" class="{{ current_path() == '/' ? 'active' }}">{{ t('nav.dashboard') }}</a>
+        <a href="/logins" class="{{ current_path() starts with '/logins' ? 'active' }}">{{ t('nav.logins') }}</a>
+        <a href="/accounts" class="{{ current_path() starts with '/accounts' ? 'active' }}">{{ t('nav.accounts') }}</a>
+        <a href="/runs" class="{{ current_path() starts with '/runs' ? 'active' }}">{{ t('nav.runs') }}</a>
+        <a href="/settings" class="{{ current_path() starts with '/settings' ? 'active' }}">{{ t('nav.settings') }}</a>
         <span class="spacer"></span>
+        <span class="lang">
+            {% for l in lang_available() %}
+                <a href="/lang/{{ l }}" class="{{ locale() == l ? 'active' }}">{{ l|upper }}</a>
+            {% endfor %}
+        </span>
         <form method="post" action="/logout" class="inline">
             <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-            <button class="btn" type="submit">Log out</button>
+            <button class="btn" type="submit">{{ t('nav.logout') }}</button>
         </form>
     </nav>
 </header>
 {% endif %}
 <main>
     {% for f in flash() %}
-        <div class="flash {{ f.type }}">{{ f.message }}</div>
+        <div class="flash {{ f.type }}">{{ t(f.message, f.params) }}</div>
     {% endfor %}
     {% block content %}{% endblock %}
 </main>

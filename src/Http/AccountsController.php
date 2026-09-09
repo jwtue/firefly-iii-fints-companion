@@ -57,7 +57,7 @@ final class AccountsController
         }
         $id = $this->accounts->create($data);
         $this->sync->syncAccount($id);
-        Flash::add('success', 'Account created.');
+        Flash::add('success', 'flash.account_created');
 
         return $this->redirect($response, '/accounts');
     }
@@ -98,7 +98,7 @@ final class AccountsController
         }
         $this->accounts->update($id, $data);
         $this->sync->syncAccount($id);
-        Flash::add('success', 'Account updated.');
+        Flash::add('success', 'flash.account_updated');
 
         return $this->redirect($response, '/accounts');
     }
@@ -110,7 +110,7 @@ final class AccountsController
         if ($account !== null) {
             $this->sync->remove((string) $account['slug']);
             $this->accounts->delete($id);
-            Flash::add('success', 'Account deleted.');
+            Flash::add('success', 'flash.account_deleted');
         }
 
         return $this->redirect($response, '/accounts');
@@ -131,7 +131,7 @@ final class AccountsController
         }
         $account['slug'] = $slug;
         $id = $this->accounts->create($account);
-        Flash::add('success', 'Account duplicated. Review and save it.');
+        Flash::add('success', 'flash.account_duplicated');
 
         return $this->redirect($response, "/accounts/$id/edit");
     }
@@ -142,16 +142,16 @@ final class AccountsController
         try {
             $outcome = $this->runner->runAccount($id, 'manual');
             if ($outcome->isSuccess()) {
-                Flash::add('success', 'Import finished: ' . $outcome->reason);
+                Flash::add('success', 'flash.import_finished', ['reason' => $outcome->reason]);
             } elseif ($outcome->needsTan()) {
-                Flash::add('warning', 'A TAN is required — see the login to re-authenticate.');
+                Flash::add('warning', 'flash.tan_required');
             } else {
-                Flash::add('error', 'Import failed: ' . $outcome->reason);
+                Flash::add('error', 'flash.import_failed', ['reason' => $outcome->reason]);
             }
         } catch (RunnerBusyException $e) {
-            Flash::add('warning', $e->getMessage());
+            Flash::add('warning', 'flash.busy');
         } catch (Throwable $e) {
-            Flash::add('error', 'Could not start the run: ' . $e->getMessage());
+            Flash::add('error', 'flash.run_start_error', ['error' => $e->getMessage()]);
         }
 
         return $this->redirect($response, '/runs');

@@ -10,11 +10,14 @@ use App\Http\AuthController;
 use App\Http\CsrfMiddleware;
 use App\Http\DashboardController;
 use App\Http\HealthController;
+use App\Http\LangController;
+use App\Http\LocaleMiddleware;
 use App\Http\LoginsController;
 use App\Http\RunsController;
 use App\Http\SettingsController;
 use App\Support\Csrf;
 use App\Support\Flash;
+use App\Support\Translator;
 use Psr\Container\ContainerInterface;
 use Slim\App;
 use Slim\Factory\AppFactory as SlimAppFactory;
@@ -39,10 +42,17 @@ final class AppFactory
             return (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
         }));
 
+        /** @var Translator $translator */
+        $translator = $container->get(Translator::class);
+        $env->addFunction(new TwigFunction('t', static fn (string $key, array $params = []): string => $translator->t($key, $params)));
+        $env->addFunction(new TwigFunction('locale', static fn (): string => $translator->locale()));
+        $env->addFunction(new TwigFunction('lang_available', static fn (): array => $translator->available()));
+
         self::routes($app);
 
         // Middleware. Execution is the reverse of registration, so body parsing runs before the CSRF
-        // check, and authentication before the controllers.
+        // check, authentication before the controllers, and locale resolution closest to the handler.
+        $app->add($container->get(LocaleMiddleware::class));
         $app->add(new CsrfMiddleware());
         $app->add($container->get(AuthMiddleware::class));
         $app->add(TwigMiddleware::create($app, $twig));
@@ -58,6 +68,7 @@ final class AppFactory
     private static function routes(App $app): void
     {
         $app->get('/healthz', [HealthController::class, 'index']);
+        $app->get('/lang/{locale}', [LangController::class, 'switch']);
 
         $app->get('/login', [AuthController::class, 'showLogin']);
         $app->post('/login', [AuthController::class, 'login']);

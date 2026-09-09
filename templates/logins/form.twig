@@ -1,68 +1,65 @@
 {% extends 'layout.twig' %}
-{% block title %}{{ is_new ? 'New login' : 'Edit login' }} — FinTS Companion{% endblock %}
+{% block title %}{{ is_new ? t('loginform.title_new') : t('loginform.title_edit') }} — {{ t('nav.brand') }}{% endblock %}
 {% block content %}
-    <h1>{{ is_new ? 'New bank login' : 'Edit bank login' }}</h1>
+    <h1>{{ is_new ? t('loginform.title_new') : t('loginform.title_edit') }}</h1>
 
     <form method="post" action="{{ is_new ? '/logins' : '/logins/' ~ login.id }}">
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
         <div class="card">
-            <label for="name">Name</label>
+            <label for="name">{{ t('loginform.name') }}</label>
             <input type="text" id="name" name="name" value="{{ login.name|default('') }}" required>
-            {% if errors.name %}<div class="field-error">{{ errors.name }}</div>{% endif %}
-            <div class="hint">A label for this bank access, e.g. the bank's name.</div>
+            {% if errors.name %}<div class="field-error">{{ t(errors.name) }}</div>{% endif %}
+            <div class="hint">{{ t('loginform.name_hint') }}</div>
 
             <div class="grid2">
                 <div>
-                    <label for="bank_code">Bank code (BLZ)</label>
+                    <label for="bank_code">{{ t('loginform.bank_code') }}</label>
                     <input type="text" id="bank_code" name="bank_code" value="{{ login.bank_code|default('') }}" required>
-                    {% if errors.bank_code %}<div class="field-error">{{ errors.bank_code }}</div>{% endif %}
+                    {% if errors.bank_code %}<div class="field-error">{{ t(errors.bank_code) }}</div>{% endif %}
                 </div>
                 <div>
-                    <label for="bank_url">FinTS URL</label>
+                    <label for="bank_url">{{ t('loginform.bank_url') }}</label>
                     <input type="text" id="bank_url" name="bank_url" value="{{ login.bank_url|default('') }}" required>
-                    {% if errors.bank_url %}<div class="field-error">{{ errors.bank_url }}</div>{% endif %}
+                    {% if errors.bank_url %}<div class="field-error">{{ t(errors.bank_url) }}</div>{% endif %}
                 </div>
             </div>
 
             <div class="grid2">
                 <div>
-                    <label for="bank_username">Online banking username</label>
+                    <label for="bank_username">{{ t('loginform.username') }}</label>
                     <input type="text" id="bank_username" name="bank_username" value="{{ login.bank_username|default('') }}" required>
-                    {% if errors.bank_username %}<div class="field-error">{{ errors.bank_username }}</div>{% endif %}
+                    {% if errors.bank_username %}<div class="field-error">{{ t(errors.bank_username) }}</div>{% endif %}
                 </div>
                 <div>
-                    <label for="bank_password">PIN / password</label>
+                    <label for="bank_password">{{ t('loginform.pin') }}</label>
                     <input type="password" id="bank_password" name="bank_password" autocomplete="new-password"
-                           {{ is_new ? 'required' }} placeholder="{{ is_new ? '' : 'unchanged' }}">
-                    {% if errors.bank_password %}<div class="field-error">{{ errors.bank_password }}</div>{% endif %}
-                    {% if not is_new %}<div class="hint">Leave blank to keep the stored PIN.</div>{% endif %}
+                           {{ is_new ? 'required' }} placeholder="{{ is_new ? '' : t('common.unchanged') }}">
+                    {% if errors.bank_password %}<div class="field-error">{{ t(errors.bank_password) }}</div>{% endif %}
+                    {% if not is_new %}<div class="hint">{{ t('loginform.pin_hint_keep') }}</div>{% endif %}
                 </div>
             </div>
 
             <div class="grid2">
                 <div>
-                    <label for="bank_2fa">TAN method code</label>
+                    <label for="bank_2fa">{{ t('loginform.tan_method') }}</label>
                     <input type="text" id="bank_2fa" name="bank_2fa" value="{{ login.bank_2fa|default('') }}">
-                    <div class="hint">Bank-specific; the importer lists the codes after a login.
-                        Use <code>NoPsd2TanMode</code> for banks without a PSD2 TAN.</div>
+                    <div class="hint">{{ t('loginform.tan_method_hint') }}</div>
                 </div>
                 <div>
-                    <label for="bank_2fa_device">TAN device</label>
+                    <label for="bank_2fa_device">{{ t('loginform.tan_device') }}</label>
                     <input type="text" id="bank_2fa_device" name="bank_2fa_device" value="{{ login.bank_2fa_device|default('') }}">
-                    <div class="hint">Only for headless runs that need a device. Copy the exact name the
-                        importer shows (no umlauts).</div>
+                    <div class="hint">{{ t('loginform.tan_device_hint') }}</div>
                 </div>
             </div>
         </div>
 
         <div class="btn-row">
-            <button class="btn primary" type="submit">Save</button>
-            <a class="btn" href="/logins">Cancel</a>
+            <button class="btn primary" type="submit">{{ t('action.save') }}</button>
+            <a class="btn" href="/logins">{{ t('action.cancel') }}</a>
         </div>
     </form>
 
     {% if not is_new %}
-    <p class="hint" style="margin-top:1rem;">The TAN persistence string is managed under
-        <a href="/logins/{{ login.id }}/reauth">Re-authenticate</a>.</p>
+    <p class="hint" style="margin-top:1rem;">{{ t('loginform.persistence_note') }}</p>
     {% endif %}
 {% endblock %}

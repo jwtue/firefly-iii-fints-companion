@@ -100,6 +100,11 @@ final class Database
                 duration_ms       INTEGER
             );
 
+            CREATE TABLE IF NOT EXISTS monitor_state (
+                account_id    INTEGER PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
+                last_alert_at TEXT
+            );
+
             CREATE INDEX IF NOT EXISTS idx_runs_started  ON runs(started_at DESC);
             CREATE INDEX IF NOT EXISTS idx_runs_account  ON runs(account_id);
             CREATE INDEX IF NOT EXISTS idx_accounts_login ON accounts(login_id);

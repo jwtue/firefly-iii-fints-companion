@@ -20,7 +20,7 @@ final class CsrfMiddleware implements MiddlewareInterface
         if (in_array($request->getMethod(), ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
             $body = (array) $request->getParsedBody();
             if (!Csrf::check($body['_csrf'] ?? null)) {
-                Flash::add('error', 'Your session expired. Please try again.');
+                Flash::add('error', 'flash.session_expired');
                 $response = new Response();
 
                 return $response->withHeader('Location', $request->getUri()->getPath())->withStatus(302);

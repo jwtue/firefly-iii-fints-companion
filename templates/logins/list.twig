@@ -1,20 +1,19 @@
 {% extends 'layout.twig' %}
-{% block title %}Logins — FinTS Companion{% endblock %}
+{% block title %}{{ t('logins.title') }} — {{ t('nav.brand') }}{% endblock %}
 {% block content %}
-    <h1>Bank logins</h1>
-    <p class="muted">A login is the bank access shared by several account imports. Re-authenticate here
-        once (roughly every 90 days) and every account under it uses the new session.</p>
+    <h1>{{ t('logins.title') }}</h1>
+    <p class="muted">{{ t('logins.intro') }}</p>
 
     <div class="card">
-        <div class="btn-row"><a class="btn primary" href="/logins/new">New login</a></div>
+        <div class="btn-row"><a class="btn primary" href="/logins/new">{{ t('dashboard.new_login') }}</a></div>
     </div>
 
     <div class="card">
         {% if logins is empty %}
-            <p class="muted">No logins yet.</p>
+            <p class="muted">{{ t('logins.none') }}</p>
         {% else %}
         <table>
-            <tr><th>Name</th><th>Bank</th><th>Accounts</th><th>Re-auth</th><th></th></tr>
+            <tr><th>{{ t('loginform.name') }}</th><th>{{ t('logins.col_bank') }}</th><th>{{ t('logins.col_accounts') }}</th><th>{{ t('logins.col_reauth') }}</th><th></th></tr>
             {% for l in logins %}
             <tr>
                 <td><strong>{{ l.name }}</strong></td>
@@ -22,16 +21,16 @@
                 <td>{{ l.account_count }}</td>
                 <td>
                     {% if l.persistence_updated_at %}<span class="muted">{{ l.persistence_updated_at }}</span>
-                    {% else %}<span class="badge warn">never</span>{% endif %}
+                    {% else %}<span class="badge warn">{{ t('common.never') }}</span>{% endif %}
                 </td>
                 <td>
                     <div class="btn-row">
-                        <a class="btn" href="/logins/{{ l.id }}/reauth">Re-authenticate</a>
-                        <a class="btn" href="/logins/{{ l.id }}/edit">Edit</a>
+                        <a class="btn" href="/logins/{{ l.id }}/reauth">{{ t('logins.reauth') }}</a>
+                        <a class="btn" href="/logins/{{ l.id }}/edit">{{ t('action.edit') }}</a>
                         <form class="inline" method="post" action="/logins/{{ l.id }}/delete"
-                              onsubmit="return confirm('Delete this login and its {{ l.account_count }} account(s)?');">
+                              onsubmit="return confirm('{{ t('action.delete') }}?');">
                             <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-                            <button class="btn danger" type="submit">Delete</button>
+                            <button class="btn danger" type="submit">{{ t('action.delete') }}</button>
                         </form>
                     </div>
                 </td>

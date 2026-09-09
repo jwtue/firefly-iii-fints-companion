@@ -21,10 +21,13 @@ triggers a build tagged `X.Y.Z`, `X.Y` and `latest`.
 - Account selection by IBAN or by credit-card account number.
 - Telegram notifications on failed runs and on “TAN required”.
 - A dedicated scheduler process (replaces an external cron); nothing runs at container start.
+- Dead-man's switch: alerts when a scheduled account has not succeeded when it should have.
+- Missed-run catch-up: widens the fetch window for one run after an outage (capped at 90 days).
+- Optional trusted-network auth bypass, evaluated against the direct socket peer only.
+- Bilingual UI (English/German), switchable in the header (cookie > Accept-Language).
 
 ### Removed
-- ntfy channel, the hourly dead-man's switch, catch-up window widening, the trusted-network auth
-  bypass and the bilingual UI from the Python version — candidates to reintroduce later.
+- The ntfy notification channel from the Python version (Telegram is supported) — may return later.
 
 ## [0.1.0] - 2026-07-20
 

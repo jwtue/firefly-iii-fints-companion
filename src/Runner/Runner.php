@@ -16,6 +16,7 @@ use App\Notify\Notifier;
 use App\Support\Lock;
 use App\Support\Redactor;
 use App\Support\Settings;
+use DateTimeImmutable;
 use PDO;
 use RuntimeException;
 
@@ -54,9 +55,20 @@ final class Runner implements RunnerInterface
             throw new RuntimeException("Account {$account['name']} has no valid login.");
         }
 
+        // After an outage, widen the window for this one run so no transactions are lost.
+        $window = CatchUp::effectiveWindow(
+            (string) $account['date_from'],
+            (string) $account['date_to'],
+            $this->runs->lastSuccessfulAt($accountId),
+            new DateTimeImmutable('now')
+        );
+        $effectiveAccount = $account;
+        $effectiveAccount['date_from'] = $window['from'];
+        $effectiveAccount['date_to'] = $window['to'];
+
         // (Re)render the flat importer config from the current login + account so a re-authenticated
         // persistence string on the login always reaches the importer.
-        $json = $this->renderer->renderJson($login, $account, $this->settings);
+        $json = $this->renderer->renderJson($login, $effectiveAccount, $this->settings);
         $this->writer->write((string) $account['slug'], $json);
 
         if (!$this->lock->tryAcquire()) {

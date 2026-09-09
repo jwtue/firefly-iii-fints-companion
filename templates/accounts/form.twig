@@ -1,10 +1,10 @@
 {% extends 'layout.twig' %}
-{% block title %}{{ is_new ? 'New account' : 'Edit account' }} — FinTS Companion{% endblock %}
+{% block title %}{{ is_new ? t('accountform.title_new') : t('accountform.title_edit') }} — {{ t('nav.brand') }}{% endblock %}
 {% block content %}
-    <h1>{{ is_new ? 'New account import' : 'Edit account import' }}</h1>
+    <h1>{{ is_new ? t('accountform.title_new') : t('accountform.title_edit') }}</h1>
 
     {% if logins is empty %}
-        <div class="flash warning">Create a <a href="/logins/new">login</a> first — an account import inherits its bank access from one.</div>
+        <div class="flash warning">{{ t('accountform.need_login_first') }} <a href="/logins/new">{{ t('dashboard.new_login') }}</a></div>
     {% endif %}
 
     <form method="post" action="{{ is_new ? '/accounts' : '/accounts/' ~ account.id }}">
@@ -13,94 +13,92 @@
         <div class="card">
             <div class="grid2">
                 <div>
-                    <label for="name">Name</label>
+                    <label for="name">{{ t('loginform.name') }}</label>
                     <input type="text" id="name" name="name" value="{{ account.name|default('') }}" required>
-                    {% if errors.name %}<div class="field-error">{{ errors.name }}</div>{% endif %}
+                    {% if errors.name %}<div class="field-error">{{ t(errors.name) }}</div>{% endif %}
                 </div>
                 <div>
-                    <label for="slug">Identifier (file name)</label>
+                    <label for="slug">{{ t('accountform.identifier') }}</label>
                     <input type="text" id="slug" name="slug" value="{{ account.slug|default('') }}"
-                           placeholder="derived from the name">
-                    {% if errors.slug %}<div class="field-error">{{ errors.slug }}</div>{% endif %}
-                    <div class="hint">Letters, digits, dot, dash, underscore. No spaces. Rendered as <code>&lt;id&gt;.json</code>.</div>
+                           placeholder="{{ t('accountform.identifier_placeholder') }}">
+                    {% if errors.slug %}<div class="field-error">{{ t(errors.slug) }}</div>{% endif %}
+                    <div class="hint">{{ t('accountform.identifier_hint') }}</div>
                 </div>
             </div>
 
-            <label for="login_id">Login</label>
+            <label for="login_id">{{ t('col.login') }}</label>
             <select id="login_id" name="login_id" required>
-                <option value="">— choose a login —</option>
+                <option value="">{{ t('accountform.choose_login') }}</option>
                 {% for l in logins %}
                     <option value="{{ l.id }}" {{ account.login_id|default(0) == l.id ? 'selected' }}>{{ l.name }}</option>
                 {% endfor %}
             </select>
-            {% if errors.login_id %}<div class="field-error">{{ errors.login_id }}</div>{% endif %}
+            {% if errors.login_id %}<div class="field-error">{{ t(errors.login_id) }}</div>{% endif %}
         </div>
 
         <div class="card">
-            <label>Account selection</label>
+            <label>{{ t('accountform.selection') }}</label>
             <div class="btn-row">
                 <label class="hint"><input type="radio" name="selector_type" value="iban"
-                    {{ account.selector_type|default('iban') != 'number' ? 'checked' }} onclick="selType()"> by IBAN</label>
+                    {{ account.selector_type|default('iban') != 'number' ? 'checked' }} onclick="selType()"> {{ t('accountform.by_iban') }}</label>
                 <label class="hint"><input type="radio" name="selector_type" value="number"
-                    {{ account.selector_type|default('iban') == 'number' ? 'checked' }} onclick="selType()"> credit card (account number)</label>
+                    {{ account.selector_type|default('iban') == 'number' ? 'checked' }} onclick="selType()"> {{ t('accountform.by_card') }}</label>
             </div>
             <div id="sel_iban">
-                <label for="bank_account_iban">IBAN</label>
+                <label for="bank_account_iban">{{ t('accountform.iban') }}</label>
                 <input type="text" id="bank_account_iban" name="bank_account_iban" value="{{ account.bank_account_iban|default('') }}">
-                {% if errors.bank_account_iban %}<div class="field-error">{{ errors.bank_account_iban }}</div>{% endif %}
+                {% if errors.bank_account_iban %}<div class="field-error">{{ t(errors.bank_account_iban) }}</div>{% endif %}
             </div>
             <div id="sel_number">
-                <label for="bank_account_number">Credit card account number</label>
+                <label for="bank_account_number">{{ t('accountform.card_number') }}</label>
                 <input type="text" id="bank_account_number" name="bank_account_number" value="{{ account.bank_account_number|default('') }}">
-                {% if errors.bank_account_number %}<div class="field-error">{{ errors.bank_account_number }}</div>{% endif %}
-                <div class="hint">The number shown in the importer's account picker for the card.</div>
+                {% if errors.bank_account_number %}<div class="field-error">{{ t(errors.bank_account_number) }}</div>{% endif %}
+                <div class="hint">{{ t('accountform.card_hint') }}</div>
             </div>
 
-            <label for="firefly_account_id">Firefly account ID</label>
+            <label for="firefly_account_id">{{ t('accountform.firefly_id') }}</label>
             <input type="text" id="firefly_account_id" name="firefly_account_id" value="{{ account.firefly_account_id|default('') }}" required>
-            {% if errors.firefly_account_id %}<div class="field-error">{{ errors.firefly_account_id }}</div>{% endif %}
-            <div class="hint">The number in the Firefly account URL: <code>/accounts/show/&lt;id&gt;</code>.</div>
+            {% if errors.firefly_account_id %}<div class="field-error">{{ t(errors.firefly_account_id) }}</div>{% endif %}
+            <div class="hint">{{ t('accountform.firefly_id_hint') }}</div>
         </div>
 
         <div class="card">
             <div class="grid2">
                 <div>
-                    <label for="date_from">Window start</label>
+                    <label for="date_from">{{ t('accountform.window_start') }}</label>
                     <input type="text" id="date_from" name="date_from" value="{{ account.date_from|default('now - 7 days') }}">
                 </div>
                 <div>
-                    <label for="date_to">Window end</label>
+                    <label for="date_to">{{ t('accountform.window_end') }}</label>
                     <input type="text" id="date_to" name="date_to" value="{{ account.date_to|default('now') }}">
-                    {% if errors.date_to %}<div class="field-error">{{ errors.date_to }}</div>{% endif %}
+                    {% if errors.date_to %}<div class="field-error">{{ t(errors.date_to) }}</div>{% endif %}
                 </div>
             </div>
-            <div class="hint">Passed straight into the bank query (e.g. <code>now - 7 days</code> … <code>now</code>).
-                Keep the span ≤ 90 days — PSD2 forces a second TAN beyond that.</div>
+            <div class="hint">{{ t('accountform.window_hint') }}</div>
 
-            <label for="schedule_cron">Schedule (cron)</label>
+            <label for="schedule_cron">{{ t('accountform.schedule') }}</label>
             <input type="text" id="schedule_cron" name="schedule_cron" value="{{ account.schedule_cron|default('') }}"
-                   placeholder="e.g. 0 1 * * *  — leave blank for manual only">
-            {% if errors.schedule_cron %}<div class="field-error">{{ errors.schedule_cron }}</div>{% endif %}
+                   placeholder="{{ t('accountform.schedule_placeholder') }}">
+            {% if errors.schedule_cron %}<div class="field-error">{{ t(errors.schedule_cron) }}</div>{% endif %}
         </div>
 
         <div class="card">
-            <label for="description_regex_match">Description regex — match</label>
+            <label for="description_regex_match">{{ t('accountform.regex_match') }}</label>
             <input type="text" id="description_regex_match" name="description_regex_match" value="{{ account.description_regex_match|default('') }}">
-            <label for="description_regex_replace">Description regex — replace</label>
+            <label for="description_regex_replace">{{ t('accountform.regex_replace') }}</label>
             <input type="text" id="description_regex_replace" name="description_regex_replace" value="{{ account.description_regex_replace|default('') }}">
-            <div class="hint">Optional. <strong>Do not change after the first import</strong> — it alters Firefly's
-                duplicate hash and creates duplicates.</div>
+            <div class="hint">{{ t('accountform.regex_hint') }}</div>
 
             <div style="margin-top:.8rem;">
-                <label class="hint"><input type="checkbox" name="skip_transaction_review" {{ account.skip_transaction_review|default(1) ? 'checked' }}> Skip the review step (required for headless runs)</label>
-                <label class="hint"><input type="checkbox" name="force_mt940" {{ account.force_mt940|default(0) ? 'checked' }}> Force MT940 (if CAMT parsing fails at this bank)</label>
-                <label class="hint"><input type="checkbox" name="enabled" {{ account.enabled|default(1) ? 'checked' }}> Enabled (scheduler runs this account)</label>
+                <label class="hint"><input type="checkbox" name="skip_transaction_review" {{ account.skip_transaction_review|default(1) ? 'checked' }}> {{ t('accountform.skip_review') }}</label>
+                <label class="hint"><input type="checkbox" name="force_mt940" {{ account.force_mt940|default(0) ? 'checked' }}> {{ t('accountform.force_mt940') }}</label>
+                <label class="hint"><input type="checkbox" name="enabled" {{ account.enabled|default(1) ? 'checked' }}> {{ t('accountform.enabled') }}</label>
             </div>
         </div>
 
         <div class="btn-row">
-            <button class="btn primary" type="submit">Save</button>
-            <a class="btn" href="/accounts">Cancel</a>
+            <button class="btn primary" type="submit">{{ t('action.save') }}</button>
+            <a class="btn" href="/accounts">{{ t('action.cancel') }}</a>
         </div>
     </form>
 

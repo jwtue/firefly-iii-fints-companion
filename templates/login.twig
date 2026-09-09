@@ -1,14 +1,19 @@
 {% extends 'layout.twig' %}
-{% block title %}Log in — FinTS Companion{% endblock %}
+{% block title %}{{ t('login.submit') }} — {{ t('nav.brand') }}{% endblock %}
 {% block content %}
     <div class="card" style="max-width:380px;margin:3rem auto;">
-        <h1>FinTS Companion</h1>
+        <h1>{{ t('nav.brand') }}</h1>
+        <div style="margin-bottom:.6rem;">
+            {% for l in lang_available() %}
+                <a href="/lang/{{ l }}" style="font-size:.8rem;margin-right:.3rem;{{ locale() == l ? 'font-weight:700;' }}">{{ l|upper }}</a>
+            {% endfor %}
+        </div>
         <form method="post" action="/login">
             <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-            <label for="password">Password</label>
+            <label for="password">{{ t('login.password') }}</label>
             <input type="password" id="password" name="password" autofocus required>
             <div class="btn-row" style="margin-top:1rem;">
-                <button class="btn primary" type="submit">Log in</button>
+                <button class="btn primary" type="submit">{{ t('login.submit') }}</button>
             </div>
         </form>
     </div>

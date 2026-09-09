@@ -1,44 +1,44 @@
 {% extends 'layout.twig' %}
-{% block title %}Accounts — FinTS Companion{% endblock %}
+{% block title %}{{ t('accounts.title') }} — {{ t('nav.brand') }}{% endblock %}
 {% block content %}
-    <h1>Account imports</h1>
-    <div class="card"><div class="btn-row"><a class="btn primary" href="/accounts/new">New account import</a></div></div>
+    <h1>{{ t('accounts.title') }}</h1>
+    <div class="card"><div class="btn-row"><a class="btn primary" href="/accounts/new">{{ t('dashboard.new_account') }}</a></div></div>
 
     <div class="card">
         {% if accounts is empty %}
-            <p class="muted">No account imports yet.</p>
+            <p class="muted">{{ t('accounts.none') }}</p>
         {% else %}
         <table>
-            <tr><th>Account</th><th>Login</th><th>Target</th><th>Schedule</th><th></th></tr>
+            <tr><th>{{ t('col.account') }}</th><th>{{ t('col.login') }}</th><th>{{ t('col.target') }}</th><th>{{ t('col.schedule') }}</th><th></th></tr>
             {% for a in accounts %}
             <tr>
                 <td>
                     <strong>{{ a.name }}</strong>
-                    {% if not a.enabled %}<span class="badge muted">disabled</span>{% endif %}
+                    {% if not a.enabled %}<span class="badge muted">{{ t('common.disabled') }}</span>{% endif %}
                     <br><span class="muted">{{ a.slug }}.json</span>
                 </td>
                 <td>{{ a.login_name }}</td>
                 <td>
-                    {% if a.selector_type == 'number' %}Card {{ a.bank_account_number }}
+                    {% if a.selector_type == 'number' %}{{ t('accounts.card_prefix') }} {{ a.bank_account_number }}
                     {% else %}{{ a.bank_account_iban }}{% endif %}
-                    <br><span class="muted">→ Firefly #{{ a.firefly_account_id }}</span>
+                    <br><span class="muted">{{ t('accounts.to_firefly', { id: a.firefly_account_id }) }}</span>
                 </td>
-                <td>{% if a.schedule_cron %}<code>{{ a.schedule_cron }}</code>{% else %}<span class="muted">manual</span>{% endif %}</td>
+                <td>{% if a.schedule_cron %}<code>{{ a.schedule_cron }}</code>{% else %}<span class="muted">{{ t('common.manual') }}</span>{% endif %}</td>
                 <td>
                     <div class="btn-row">
                         <form class="inline" method="post" action="/accounts/{{ a.id }}/run">
                             <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-                            <button class="btn" type="submit">Run</button>
+                            <button class="btn" type="submit">{{ t('action.run') }}</button>
                         </form>
-                        <a class="btn" href="/accounts/{{ a.id }}/edit">Edit</a>
+                        <a class="btn" href="/accounts/{{ a.id }}/edit">{{ t('action.edit') }}</a>
                         <form class="inline" method="post" action="/accounts/{{ a.id }}/duplicate">
                             <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-                            <button class="btn" type="submit">Duplicate</button>
+                            <button class="btn" type="submit">{{ t('action.duplicate') }}</button>
                         </form>
                         <form class="inline" method="post" action="/accounts/{{ a.id }}/delete"
-                              onsubmit="return confirm('Delete this account import?');">
+                              onsubmit="return confirm('{{ t('action.delete') }}?');">
                             <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-                            <button class="btn danger" type="submit">Delete</button>
+                            <button class="btn danger" type="submit">{{ t('action.delete') }}</button>
                         </form>
                     </div>
                 </td>

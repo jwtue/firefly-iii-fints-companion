@@ -61,7 +61,7 @@ final class SettingsController
                 $this->settings->set($key, $value);
             }
         }
-        Flash::add('success', 'Settings saved.');
+        Flash::add('success', 'flash.settings_saved');
 
         return $response->withHeader('Location', '/settings')->withStatus(302);
     }

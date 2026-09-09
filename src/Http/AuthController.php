@@ -33,7 +33,7 @@ final class AuthController
         if ($this->auth->attempt($password)) {
             return $response->withHeader('Location', '/')->withStatus(302);
         }
-        Flash::add('error', 'Wrong password.');
+        Flash::add('error', 'flash.wrong_password');
 
         return $response->withHeader('Location', '/login')->withStatus(302);
     }

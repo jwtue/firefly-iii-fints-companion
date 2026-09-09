@@ -55,7 +55,7 @@ final class LoginsController
             return $this->view->render($response, 'logins/form.twig', ['login' => $data, 'errors' => $errors, 'is_new' => true]);
         }
         $this->logins->create($data);
-        Flash::add('success', 'Login created.');
+        Flash::add('success', 'flash.login_created');
 
         return $this->redirect($response, '/logins');
     }
@@ -94,7 +94,7 @@ final class LoginsController
         $data['fints_persistence'] = $existing['fints_persistence'];
         $this->logins->update($id, $data);
         $this->sync->syncLogin($id);
-        Flash::add('success', 'Login updated.');
+        Flash::add('success', 'flash.login_updated');
 
         return $this->redirect($response, '/logins');
     }
@@ -107,7 +107,7 @@ final class LoginsController
             $this->sync->remove((string) $account['slug']);
         }
         $this->logins->delete($id);
-        Flash::add('success', 'Login and its accounts deleted.');
+        Flash::add('success', 'flash.login_deleted');
 
         return $this->redirect($response, '/logins');
     }
@@ -133,14 +133,14 @@ final class LoginsController
         }
         $persistence = trim((string) (((array) $request->getParsedBody())['fints_persistence'] ?? ''));
         if ($persistence === '') {
-            Flash::add('error', 'Please paste the persistence string shown by the importer.');
+            Flash::add('error', 'flash.reauth_paste_required');
 
             return $this->redirect($response, "/logins/$id/reauth");
         }
         $this->logins->updatePersistence($id, $persistence);
         $this->sync->syncLogin($id);
         $count = $this->logins->accountCount($id);
-        Flash::add('success', "Re-authenticated. $count account(s) updated.");
+        Flash::add('success', 'flash.reauth_done', ['count' => $count]);
 
         return $this->redirect($response, '/logins');
     }

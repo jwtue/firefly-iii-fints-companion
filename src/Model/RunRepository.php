@@ -78,6 +78,21 @@ final class RunRepository
         return $row === false ? null : $row;
     }
 
+    /** The start time of the most recent successful run for an account, or null if none. */
+    public function lastSuccessfulAt(int $accountId): ?\DateTimeImmutable
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT MAX(started_at) FROM runs WHERE account_id = ? AND status = 'success'"
+        );
+        $stmt->execute([$accountId]);
+        $value = $stmt->fetchColumn();
+        if ($value === false || $value === null) {
+            return null;
+        }
+
+        return new \DateTimeImmutable($value . ' UTC');
+    }
+
     /** @return array<string, mixed>|null the most recent finished run for an account */
     public function lastForAccount(int $accountId): ?array
     {

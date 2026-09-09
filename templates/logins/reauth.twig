@@ -1,24 +1,24 @@
 {% extends 'layout.twig' %}
-{% block title %}Re-authenticate — FinTS Companion{% endblock %}
+{% block title %}{{ t('logins.reauth') }} — {{ t('nav.brand') }}{% endblock %}
 {% block content %}
-    <h1>Re-authenticate “{{ login.name }}”</h1>
+    <h1>{{ t('reauth.title', { name: login.name }) }}</h1>
 
     <div class="card">
-        <p>PSD2 forces a fresh TAN roughly every 90 days. When a scheduled run reports “TAN required”:</p>
+        <p>{{ t('reauth.intro') }}</p>
         <ol>
-            <li>Run one account of this login manually through the <strong>importer</strong> UI and complete the TAN.</li>
-            <li>Copy the persistence string the importer shows on the final page.</li>
-            <li>Paste it below. All <strong>{{ account_count }}</strong> account(s) under this login will use it.</li>
+            <li>{{ t('reauth.step1') }}</li>
+            <li>{{ t('reauth.step2') }}</li>
+            <li>{{ t('reauth.step3', { count: account_count }) }}</li>
         </ol>
 
         <form method="post" action="/logins/{{ login.id }}/reauth">
             <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-            <label for="fints_persistence">Persistence string</label>
+            <label for="fints_persistence">{{ t('reauth.field') }}</label>
             <textarea id="fints_persistence" name="fints_persistence" rows="4"
-                      placeholder="Paste the base64 string from the importer here" required></textarea>
+                      placeholder="{{ t('reauth.placeholder') }}" required></textarea>
             <div class="btn-row" style="margin-top:1rem;">
-                <button class="btn primary" type="submit">Save &amp; propagate</button>
-                <a class="btn" href="/logins">Cancel</a>
+                <button class="btn primary" type="submit">{{ t('reauth.save') }}</button>
+                <a class="btn" href="/logins">{{ t('action.cancel') }}</a>
             </div>
         </form>
     </div>

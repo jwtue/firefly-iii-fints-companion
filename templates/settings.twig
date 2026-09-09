@@ -1,42 +1,42 @@
 {% extends 'layout.twig' %}
-{% block title %}Settings — FinTS Companion{% endblock %}
+{% block title %}{{ t('settings.title') }} — {{ t('nav.brand') }}{% endblock %}
 {% block content %}
-    <h1>Settings</h1>
+    <h1>{{ t('settings.title') }}</h1>
     <form method="post" action="/settings">
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 
         <div class="card">
-            <h2>Importer</h2>
-            <label for="importer_url">Importer URL</label>
+            <h2>{{ t('settings.importer_h') }}</h2>
+            <label for="importer_url">{{ t('settings.importer_url') }}</label>
             <input type="text" id="importer_url" name="importer_url" value="{{ values.importer_url }}"
                    placeholder="http://firefly-fints-importer:8080" {{ from_env.importer_url ? 'readonly' }}>
-            <div class="hint">The base URL of the FinTS importer container.{% if from_env.importer_url %} Fixed by the environment.{% endif %}</div>
+            <div class="hint">{{ t('settings.importer_url_hint') }}{% if from_env.importer_url %} {{ t('settings.env_fixed') }}{% endif %}</div>
         </div>
 
         <div class="card">
-            <h2>Firefly III</h2>
-            <label for="firefly_url">Firefly URL</label>
+            <h2>{{ t('settings.firefly_h') }}</h2>
+            <label for="firefly_url">{{ t('settings.firefly_url') }}</label>
             <input type="text" id="firefly_url" name="firefly_url" value="{{ values.firefly_url }}"
                    placeholder="http://firefly:8080" {{ from_env.firefly_url ? 'readonly' }}>
-            <label for="firefly_token">Personal access token</label>
+            <label for="firefly_token">{{ t('settings.firefly_token') }}</label>
             <input type="password" id="firefly_token" name="firefly_token" autocomplete="new-password"
-                   placeholder="{{ values.firefly_token_set ? 'stored — leave blank to keep' : 'not set' }}"
+                   placeholder="{{ values.firefly_token_set ? t('settings.token_stored') : t('settings.token_notset') }}"
                    {{ from_env.firefly_token ? 'readonly' }}>
-            <div class="hint">Firefly → Options → Profile → OAuth → Personal Access Token.{% if from_env.firefly_token %} Fixed by the environment.{% endif %}</div>
+            <div class="hint">{{ t('settings.firefly_token_hint') }}{% if from_env.firefly_token %} {{ t('settings.env_fixed') }}{% endif %}</div>
         </div>
 
         <div class="card">
-            <h2>Telegram notifications</h2>
-            <label for="telegram_bot_token">Bot token</label>
+            <h2>{{ t('settings.telegram_h') }}</h2>
+            <label for="telegram_bot_token">{{ t('settings.bot_token') }}</label>
             <input type="password" id="telegram_bot_token" name="telegram_bot_token" autocomplete="new-password"
-                   placeholder="{{ values.telegram_bot_token_set ? 'stored — leave blank to keep' : 'not set' }}"
+                   placeholder="{{ values.telegram_bot_token_set ? t('settings.token_stored') : t('settings.token_notset') }}"
                    {{ from_env.telegram_bot_token ? 'readonly' }}>
-            <label for="telegram_chat_id">Chat ID</label>
+            <label for="telegram_chat_id">{{ t('settings.chat_id') }}</label>
             <input type="text" id="telegram_chat_id" name="telegram_chat_id" value="{{ values.telegram_chat_id }}"
                    {{ from_env.telegram_chat_id ? 'readonly' }}>
-            <div class="hint">Leave the bot token blank to disable notifications. Alerts fire on failed runs and on “TAN required”.</div>
+            <div class="hint">{{ t('settings.telegram_hint') }}</div>
         </div>
 
-        <div class="btn-row"><button class="btn primary" type="submit">Save settings</button></div>
+        <div class="btn-row"><button class="btn primary" type="submit">{{ t('action.save') }}</button></div>
     </form>
 {% endblock %}

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Container;
+use App\Scheduler\DeadMansSwitch;
 use App\Scheduler\Scheduler;
 use Dotenv\Dotenv;
 
@@ -21,6 +22,8 @@ if (is_file(__DIR__ . '/../.env')) {
 $container = Container::build();
 /** @var Scheduler $scheduler */
 $scheduler = $container->get(Scheduler::class);
+/** @var DeadMansSwitch $deadMansSwitch */
+$deadMansSwitch = $container->get(DeadMansSwitch::class);
 
 $log = static function (string $message): void {
     fwrite(STDOUT, '[' . gmdate('Y-m-d H:i:s') . 'Z] ' . $message . "\n");
@@ -37,6 +40,8 @@ while (true) {
             $status = $result['ok'] ? 'ok' : 'FAILED';
             $log("run {$result['account']['name']}: $status ({$result['message']})");
         }
+        // Alert on scheduled accounts that should have succeeded but did not (de-duplicated internally).
+        $deadMansSwitch->run($now);
     } catch (Throwable $e) {
         // Never let a single bad tick kill the loop.
         $log('tick error: ' . $e->getMessage());
