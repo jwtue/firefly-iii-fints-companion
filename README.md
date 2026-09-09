@@ -89,8 +89,14 @@ docker compose -f compose.example.yaml up -d
 ```
 
 The companion has no host port mapping; reach it through a reverse proxy. `GET /healthz` is
-unauthenticated (liveness only). Run the scheduler as a second container from the same image with
-`command: php bin/scheduler.php` (see the example compose file).
+unauthenticated (liveness only).
+
+The scheduler can run two ways:
+
+- **All-in-one** (one container): set `SIDECAR_RUN_SCHEDULER=true` on the web container — it then serves
+  the UI and runs scheduled imports in the same container.
+- **Separate** (two containers): leave `SIDECAR_RUN_SCHEDULER` unset and run a second container from the
+  same image with `command: php bin/scheduler.php` (see the example compose file).
 
 ## Configuration
 

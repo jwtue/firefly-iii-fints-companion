@@ -20,6 +20,9 @@ COPY . .
 # Serve the public/ directory (see Caddyfile).
 COPY Caddyfile /etc/caddy/Caddyfile
 
+# Normalize line endings (in case of a Windows checkout) and make the entrypoint executable.
+RUN sed -i 's/\r$//' /app/docker/entrypoint.sh && chmod +x /app/docker/entrypoint.sh
+
 # The state database and the rendered importer configs live under /data (mount a volume there).
 ENV SIDECAR_DATABASE_PATH=/data/sidecar/sidecar.sqlite \
     SIDECAR_CONFIG_DIR=/data/configurations \
@@ -30,6 +33,6 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
     CMD curl -fsS http://127.0.0.1:8080/healthz || exit 1
 
-# Default command runs the web server. The scheduler runs the same image with:
-#   command: php bin/scheduler.php
-CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]
+# Default command serves the UI and, if SIDECAR_RUN_SCHEDULER=true, runs the scheduler in the same
+# container (all-in-one). Override with `php bin/scheduler.php` for a dedicated scheduler container.
+CMD ["/app/docker/entrypoint.sh"]

@@ -32,6 +32,9 @@ final class Database
         ]);
         $this->pdo->exec('PRAGMA journal_mode = WAL');
         $this->pdo->exec('PRAGMA foreign_keys = ON');
+        // The UI and the scheduler may share this database (all-in-one container); wait rather than
+        // fail when the other process holds a write lock.
+        $this->pdo->exec('PRAGMA busy_timeout = 5000');
         $this->migrate();
     }
 
