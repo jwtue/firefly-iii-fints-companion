@@ -1,0 +1,43 @@
+{% extends 'layout.twig' %}
+{% block title %}Logins — FinTS Companion{% endblock %}
+{% block content %}
+    <h1>Bank logins</h1>
+    <p class="muted">A login is the bank access shared by several account imports. Re-authenticate here
+        once (roughly every 90 days) and every account under it uses the new session.</p>
+
+    <div class="card">
+        <div class="btn-row"><a class="btn primary" href="/logins/new">New login</a></div>
+    </div>
+
+    <div class="card">
+        {% if logins is empty %}
+            <p class="muted">No logins yet.</p>
+        {% else %}
+        <table>
+            <tr><th>Name</th><th>Bank</th><th>Accounts</th><th>Re-auth</th><th></th></tr>
+            {% for l in logins %}
+            <tr>
+                <td><strong>{{ l.name }}</strong></td>
+                <td>{{ l.bank_code }}<br><span class="muted">{{ l.bank_username }}</span></td>
+                <td>{{ l.account_count }}</td>
+                <td>
+                    {% if l.persistence_updated_at %}<span class="muted">{{ l.persistence_updated_at }}</span>
+                    {% else %}<span class="badge warn">never</span>{% endif %}
+                </td>
+                <td>
+                    <div class="btn-row">
+                        <a class="btn" href="/logins/{{ l.id }}/reauth">Re-authenticate</a>
+                        <a class="btn" href="/logins/{{ l.id }}/edit">Edit</a>
+                        <form class="inline" method="post" action="/logins/{{ l.id }}/delete"
+                              onsubmit="return confirm('Delete this login and its {{ l.account_count }} account(s)?');">
+                            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                            <button class="btn danger" type="submit">Delete</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% endif %}
+    </div>
+{% endblock %}

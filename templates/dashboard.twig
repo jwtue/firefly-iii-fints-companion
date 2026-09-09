@@ -1,0 +1,72 @@
+{% extends 'layout.twig' %}
+{% block title %}Dashboard — FinTS Companion{% endblock %}
+{% block content %}
+    <h1>Dashboard</h1>
+
+    {% if not firefly_configured or not importer_configured %}
+        <div class="flash warning">
+            {% if not importer_configured %}The importer URL is not set. {% endif %}
+            {% if not firefly_configured %}The Firefly connection is not set. {% endif %}
+            Configure them under <a href="/settings">Settings</a>.
+        </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="btn-row">
+            <a class="btn primary" href="/accounts/new">New account import</a>
+            <a class="btn" href="/logins/new">New login</a>
+            <span class="muted">{{ login_count }} login(s)</span>
+        </div>
+    </div>
+
+    <h2>Accounts</h2>
+    <div class="card">
+        {% if accounts is empty %}
+            <p class="muted">No account imports yet. Create a login first, then add an account.</p>
+        {% else %}
+        <table>
+            <tr><th>Account</th><th>Login</th><th>Schedule</th><th>Last run</th><th></th></tr>
+            {% for a in accounts %}
+            <tr>
+                <td><strong>{{ a.name }}</strong><br><span class="muted">{{ a.slug }}.json</span></td>
+                <td>{{ a.login_name }}</td>
+                <td>{% if a.schedule_cron %}<code>{{ a.schedule_cron }}</code>{% else %}<span class="muted">manual</span>{% endif %}</td>
+                <td>
+                    {% if a.last_run %}
+                        {% include 'partials/status_badge.twig' with { status: a.last_run.status } %}
+                        <div class="muted">{{ a.last_run.finished_at }}</div>
+                    {% else %}
+                        {% include 'partials/status_badge.twig' with { status: '' } %}
+                    {% endif %}
+                </td>
+                <td>
+                    <form class="inline" method="post" action="/accounts/{{ a.id }}/run">
+                        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                        <button class="btn" type="submit">Run now</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% endif %}
+    </div>
+
+    <h2>Recent runs</h2>
+    <div class="card">
+        {% if recent_runs is empty %}
+            <p class="muted">No runs yet.</p>
+        {% else %}
+        <table>
+            <tr><th>When</th><th>Account</th><th>Status</th><th>Detail</th></tr>
+            {% for r in recent_runs %}
+            <tr>
+                <td>{{ r.started_at }}</td>
+                <td>{{ r.account_name }}</td>
+                <td>{% include 'partials/status_badge.twig' with { status: r.status } %}</td>
+                <td><a href="/runs/{{ r.id }}">{{ r.outcome_reason|default('—')|slice(0, 80) }}</a></td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% endif %}
+    </div>
+{% endblock %}

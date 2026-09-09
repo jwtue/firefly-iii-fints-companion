@@ -1,22 +1,18 @@
-# Keep the image lean and free of anything that isn't the app.
+# Keep the build context lean.
 .git
 .github
-.venv
-venv
+/vendor
+/data
 tests
-data
-*.md
-!README.md
-.gitignore
-.dockerignore
+phpunit.xml
+.phpunit.cache
+.phpunit.result.cache
+composer.phar
 .env
 *.env
 !*.env.example
-__pycache__
-*.py[cod]
-.pytest_cache
-.ruff_cache
-.coverage
-htmlcov
-plans
+.idea
+.vscode
 compose.example.yaml
+*.md
+!README.md

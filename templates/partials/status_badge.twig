@@ -1,0 +1,7 @@
+{% set s = status|default('') %}
+{% if s == 'success' %}<span class="badge ok">success</span>
+{% elseif s == 'tan_required' %}<span class="badge warn">TAN required</span>
+{% elseif s == 'failure' %}<span class="badge err">failed</span>
+{% elseif s == 'running' %}<span class="badge muted">running</span>
+{% else %}<span class="badge muted">{{ s ?: 'never run' }}</span>
+{% endif %}

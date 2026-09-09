@@ -1,0 +1,42 @@
+{% extends 'layout.twig' %}
+{% block title %}Settings — FinTS Companion{% endblock %}
+{% block content %}
+    <h1>Settings</h1>
+    <form method="post" action="/settings">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+
+        <div class="card">
+            <h2>Importer</h2>
+            <label for="importer_url">Importer URL</label>
+            <input type="text" id="importer_url" name="importer_url" value="{{ values.importer_url }}"
+                   placeholder="http://firefly-fints-importer:8080" {{ from_env.importer_url ? 'readonly' }}>
+            <div class="hint">The base URL of the FinTS importer container.{% if from_env.importer_url %} Fixed by the environment.{% endif %}</div>
+        </div>
+
+        <div class="card">
+            <h2>Firefly III</h2>
+            <label for="firefly_url">Firefly URL</label>
+            <input type="text" id="firefly_url" name="firefly_url" value="{{ values.firefly_url }}"
+                   placeholder="http://firefly:8080" {{ from_env.firefly_url ? 'readonly' }}>
+            <label for="firefly_token">Personal access token</label>
+            <input type="password" id="firefly_token" name="firefly_token" autocomplete="new-password"
+                   placeholder="{{ values.firefly_token_set ? 'stored — leave blank to keep' : 'not set' }}"
+                   {{ from_env.firefly_token ? 'readonly' }}>
+            <div class="hint">Firefly → Options → Profile → OAuth → Personal Access Token.{% if from_env.firefly_token %} Fixed by the environment.{% endif %}</div>
+        </div>
+
+        <div class="card">
+            <h2>Telegram notifications</h2>
+            <label for="telegram_bot_token">Bot token</label>
+            <input type="password" id="telegram_bot_token" name="telegram_bot_token" autocomplete="new-password"
+                   placeholder="{{ values.telegram_bot_token_set ? 'stored — leave blank to keep' : 'not set' }}"
+                   {{ from_env.telegram_bot_token ? 'readonly' }}>
+            <label for="telegram_chat_id">Chat ID</label>
+            <input type="text" id="telegram_chat_id" name="telegram_chat_id" value="{{ values.telegram_chat_id }}"
+                   {{ from_env.telegram_chat_id ? 'readonly' }}>
+            <div class="hint">Leave the bot token blank to disable notifications. Alerts fire on failed runs and on “TAN required”.</div>
+        </div>
+
+        <div class="btn-row"><button class="btn primary" type="submit">Save settings</button></div>
+    </form>
+{% endblock %}

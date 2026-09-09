@@ -1,28 +1,17 @@
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-.eggs/
-build/
-dist/
-.venv/
-venv/
+# PHP / Composer
+/vendor/
+composer.phar
+.phpunit.cache/
+.phpunit.result.cache
 
-# Test / tooling
-.pytest_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-
-# Runtime state (never commit — may hold run history / redacted bodies)
+# Runtime state (never commit — may hold run history / redacted response bodies)
 /data/
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
-*.db
 
-# Secrets — configs hold bank PIN / tokens in cleartext, never commit
-/data/configurations/
+# Secrets — configs hold the bank PIN / tokens in cleartext, never commit
+.env
 *.env
 !*.env.example
 
@@ -30,3 +19,10 @@ htmlcov/
 .idea/
 .vscode/
 *.swp
+
+# Leftovers from the previous Python implementation (should not reappear)
+__pycache__/
+*.egg-info/
+/build/
+.pytest_cache/
+.venv/

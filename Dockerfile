@@ -1,24 +1,32 @@
-# Firefly FinTS Sidecar — small, single container, ARM-capable (Raspberry Pi).
-FROM python:3.12-slim AS base
+# FrankenPHP: a single production-grade process serving the app — not the PHP dev server.
+FROM dunglas/frankenphp:1-php8.4
 
-# Non-root user; the app never needs root.
-RUN useradd --create-home --uid 10001 sidecar
+# pdo_sqlite for the state database; the rest of the runtime is in the base image.
+RUN install-php-extensions pdo_sqlite
 
 WORKDIR /app
 
-# Install the project (and its dependencies) from pyproject — single source of
-# truth for versions. Copying pyproject + package first keeps the layer cache
-# warm as long as neither changes.
-COPY pyproject.toml README.md ./
-COPY app ./app
-RUN pip install --no-cache-dir .
+# Install dependencies first for better layer caching.
+COPY composer.json composer.lock ./
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
+    && composer install --no-dev --no-interaction --no-progress --optimize-autoloader --no-scripts \
+    && rm -f /usr/local/bin/composer
 
-USER sidecar
+COPY . .
+
+# Serve the public/ directory (see Caddyfile).
+COPY Caddyfile /etc/caddy/Caddyfile
+
+# The state database and the rendered importer configs live under /data (mount a volume there).
+ENV SIDECAR_DATABASE_PATH=/data/sidecar/sidecar.sqlite \
+    SIDECAR_CONFIG_DIR=/data/configurations \
+    SIDECAR_LOCK_FILE=/data/sidecar/run.lock
 
 EXPOSE 8080
 
-# Liveness: the unauthenticated /healthz endpoint, no data exposed.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/healthz').status==200 else 1)" || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
+    CMD curl -fsS http://127.0.0.1:8080/healthz || exit 1
 
-CMD ["uvicorn", "app.asgi:app", "--host", "0.0.0.0", "--port", "8080"]
+# Default command runs the web server. The scheduler runs the same image with:
+#   command: php bin/scheduler.php
+CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]

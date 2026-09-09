@@ -1,0 +1,28 @@
+{% extends 'layout.twig' %}
+{% block title %}Run #{{ run.id }} — FinTS Companion{% endblock %}
+{% block content %}
+    <h1>Run #{{ run.id }} — {{ run.account_name }}</h1>
+    <p><a class="btn" href="/runs">← All runs</a></p>
+
+    <div class="card">
+        <table>
+            <tr><th>Status</th><td>{% include 'partials/status_badge.twig' with { status: run.status } %}</td></tr>
+            <tr><th>Reason</th><td>{{ run.outcome_reason ?: '—' }}</td></tr>
+            <tr><th>Trigger</th><td>{{ run.trigger }}</td></tr>
+            <tr><th>Started</th><td>{{ run.started_at }}</td></tr>
+            <tr><th>Finished</th><td>{{ run.finished_at ?: '—' }}</td></tr>
+            <tr><th>Duration</th><td>{{ run.duration_ms is not null ? (run.duration_ms ~ ' ms') : '—' }}</td></tr>
+            <tr><th>HTTP status</th><td>{{ run.http_status ?: '—' }}</td></tr>
+            <tr><th>Transactions</th><td>{{ run.num_transactions is not null ? run.num_transactions : '—' }}</td></tr>
+        </table>
+    </div>
+
+    <h2>Importer response (redacted)</h2>
+    <div class="card">
+        {% if run.response_excerpt %}
+            <pre>{{ run.response_excerpt }}</pre>
+        {% else %}
+            <p class="muted">No response body captured.</p>
+        {% endif %}
+    </div>
+{% endblock %}

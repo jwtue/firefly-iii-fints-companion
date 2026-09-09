@@ -9,6 +9,23 @@ triggers a build tagged `X.Y.Z`, `X.Y` and `latest`.
 
 ## [Unreleased]
 
+### Changed
+- **Reimplemented in PHP (Slim 4, Twig, SQLite, served by FrankenPHP)**, replacing the initial
+  Python implementation, to stay close to the importer's platform for a possible future merge.
+
+### Added
+- **Shared bank logins.** Credentials and the TAN setup are modeled once as a *login*; each account
+  import *inherits* a login and adds only account-specific fields. Re-authentication updates the
+  persistence string on the login and propagates to every inheriting account. The importer's flat
+  per-account config files are rendered from this normalized model.
+- Account selection by IBAN or by credit-card account number.
+- Telegram notifications on failed runs and on “TAN required”.
+- A dedicated scheduler process (replaces an external cron); nothing runs at container start.
+
+### Removed
+- ntfy channel, the hourly dead-man's switch, catch-up window widening, the trusted-network auth
+  bypass and the bilingual UI from the Python version — candidates to reintroduce later.
+
 ## [0.1.0] - 2026-07-20
 
 First tagged release.

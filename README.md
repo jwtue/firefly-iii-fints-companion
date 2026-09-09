@@ -1,143 +1,123 @@
 # Firefly III FinTS Companion
 
-A companion service for the FinTS importer
-[`bnw/firefly-iii-fints-importer`](https://github.com/bnw/firefly-iii-fints-importer). It adds
-a web UI, scheduling, run history and notifications on top of the importer **without modifying
+A companion web UI for the FinTS importer
+[`bnw/firefly-iii-fints-importer`](https://github.com/bnw/firefly-iii-fints-importer). It adds shared
+bank logins, scheduling, run history and notifications on top of the importer **without modifying
 it** — it runs as its own container next to the importer, shares the importer's configuration
 directory, and triggers imports over the importer's HTTP interface.
 
-Image: `ghcr.io/jwtue/firefly-iii-fints-companion` (`linux/arm64`).
+Image: `ghcr.io/jwtue/firefly-iii-fints-companion`.
+
+> Built with the assistance of Claude Code. See [`AGENTS.md`](AGENTS.md) for the design rationale.
+
+## Why this exists
+
+The importer is a browser wizard with no scheduler, no persistent logs, and a headless mode that
+answers every outcome — success, “config not found”, “TAN required”, a fatal error — with `HTTP 200`
+and an HTML body. Scraping that body for an error string reports success for runs that never
+happened. This companion makes runs observable, classifies failures conservatively, and — its main
+idea — models the bank access as a **shared login** instead of repeating credentials per account.
+
+## Shared logins
+
+In the importer, every account configuration is a self-contained JSON file that repeats the full bank
+credentials and TAN setup. In practice several accounts share one bank access, so re-authenticating
+(a fresh FinTS persistence string, which PSD2 forces roughly every 90 days) means editing every file.
+
+Here the model is normalized:
+
+- A **login** holds the bank access once: URL, code, username, PIN, TAN method and the persistence
+  string.
+- An **account import** inherits a login and adds only what is account-specific: the account to fetch
+  (IBAN, or an account number for a credit card), the target Firefly account, the rolling date window,
+  description rewriting and a schedule.
+- The companion **renders the importer's flat config files from this model** on demand. A single
+  re-authentication on a login therefore propagates to every account that inherits from it.
 
 ## What it does
 
-- **Configuration management** — create, edit, duplicate and delete the importer's per-account
-  JSON configs through a form, with validation (90-day window limit, filename rules, required
-  headless fields) and inline help for the fields that can't be guessed.
-- **Scheduling** — a cron schedule per config. Runs execute sequentially through a global lock,
-  so two runs never hit the same bank at once. Nothing runs at container start.
-- **Run history** — every run is stored with its timestamp, trigger, outcome, duration and the
-  (redacted) importer response body, all viewable in the UI.
-- **Reliable outcome detection** — the importer answers everything with HTTP 200 and HTML, so
-  outcomes are classified from the response. Anything not recognized as a success — a missing
-  config, a TAN prompt, a fatal error, an unknown page — is recorded as a **failure**, never a
-  silent success.
-- **Notifications** — ntfy and Telegram (apprise-style URLs) on failed runs and on "TAN
-  required", plus an hourly dead-man's switch that alerts when a scheduled config stops
-  succeeding. Every outbound message is redacted.
-- **Catch-up** — after a missed run the fetch window is temporarily widened for a single run so
-  no transactions are lost, then restored (Firefly's duplicate detection absorbs the overlap).
+- **Logins & accounts** — manage both through forms, with validation (≤ 90-day window, filename rules,
+  cron syntax) and inline help for the fields that cannot be guessed.
+- **Scheduling** — a cron schedule per account. A dedicated scheduler process runs due imports
+  sequentially through a shared lock, so two runs never hit the same bank at once. Nothing runs at
+  container start.
+- **Run history** — every run is stored with its timestamp, trigger, outcome, duration and a redacted
+  excerpt of the importer response.
+- **Reliable outcome detection** — a chain that upgrades as the importer gains a machine-readable
+  status: a JSON body, then a real HTTP status code, then an HTML heuristic that classifies as success
+  **only** on a recognized “Import finished” page and treats everything else as a failure.
+- **Notifications** — Telegram alerts on failed runs and on “TAN required”. Every message is redacted.
+- **Re-authentication** — a one-field form to paste the new persistence string; it propagates to all
+  accounts of the login.
 
 ## What it does not do
 
-- **Answer TANs.** The FinTS session lives inside the importer process, so a headless run cannot
-  complete a TAN challenge. The companion notifies that a TAN is due; the user completes it once
-  through the importer UI and pastes the new persistence string back in (a dedicated one-field
-  form exists for this). PSD2 requires this roughly every 90 days regardless.
-- **Credit-card imports.** Out of scope.
+- **Answer TANs.** The FinTS session lives inside the importer, so a headless run cannot complete a
+  TAN challenge. The companion notifies that a TAN is due; you complete it once through the importer
+  UI and paste the new persistence string into the login.
+- **Credit-card retrieval.** That lives in the importer.
 - **Modify the importer.** It is used as an unmodified upstream image.
 
 ## How it works
 
-The companion and the importer share the config directory (mounted at
-`/data/configurations` on the importer). A run is triggered with
-`GET /?automate=true&config=<name>.json`.
-
-Outcome detection is an adapter chain, first match wins:
-
-1. `JsonStatusDetector` — used when the importer returns a JSON status (`&format=json`).
-2. `HttpStatusDetector` — used when the response carries a real HTTP status code (≠ 200).
-3. `HtmlHeuristicDetector` — the fallback: it parses the HTML and **defaults to failure** for
-   anything it does not positively recognize as success.
-
-State (run history, schedules, audit log) is kept in SQLite. Configs remain the single source
-of truth as JSON on the shared volume; no secrets are copied into the database.
-
-## Known limitations
-
-- **The importer exposes no machine-readable status.** Detection therefore relies on the HTML
-  heuristic. If the importer is patched to return a status code / JSON, set
-  `SIDECAR_IMPORTER_SUPPORTS_JSON=true` to use it instead.
-- **90-day fetch window.** Beyond ~90 days PSD2 forces a second TAN mid-dialog that the importer
-  cannot resume, so the window is capped at 90 days (catch-up widening at 89).
-- **`description_regex_*` must not change after the first import.** Changing the description
-  format breaks Firefly's hash-based duplicate detection and creates duplicate transactions. The
-  editor renders these fields read-only behind an explicit unlock and warns about this.
-- **`bank_2fa` and `bank_2fa_device` are not guessable.** They must be copied verbatim from the
-  importer UI after a login (no umlauts in the device name).
+The companion and the importer share the config directory (mounted at `/data/configurations` on the
+importer). A run renders the account's config, writes it there, and triggers
+`GET /?automate=true&config=<name>.json`. The normalized model and the run history live in SQLite; the
+flat config files are generated artifacts.
 
 ## Requirements
 
 - A running `bnw/firefly-iii-fints-importer` container reachable over HTTP.
-- The config directory shared between both containers (mounted at `/data/configurations` on the
-  importer side).
+- The config directory shared between both containers, mounted at **`/data/configurations`** on the
+  importer side (not `/app/configurations` — the importer's automate path resolves the config name
+  relative to `CWD=/`, so the wrong mount fails silently).
 
 ## Running
 
-Pull the published image:
-
-```bash
-docker pull ghcr.io/jwtue/firefly-iii-fints-companion:latest
-```
-
-or bring it up next to the importer with the example compose file:
+Bring it up next to the importer with the example compose file:
 
 ```bash
 docker compose -f compose.example.yaml up -d
 ```
 
-The companion has no host port mapping; reach it through a reverse proxy on the shared network.
-`GET /healthz` is unauthenticated (liveness only, no data) and is suitable as a health check.
-The UI is bilingual (English/German); the language follows `Accept-Language` and can be switched
-in the header.
+The companion has no host port mapping; reach it through a reverse proxy. `GET /healthz` is
+unauthenticated (liveness only). Run the scheduler as a second container from the same image with
+`command: php bin/scheduler.php` (see the example compose file).
 
 ## Configuration
 
-All options are environment variables with the `SIDECAR_` prefix — see
-[`.env.example`](.env.example) for the full list. The container refuses to start unless either a
-password (`SIDECAR_PASSWORD_HASH`) or a trusted network (`SIDECAR_TRUSTED_NETWORKS`) is
-configured. Generate a password hash with:
-
-```bash
-python -c "from app.auth import hash_password; print(hash_password('yourPassword'))"
-```
+All options are environment variables with the `SIDECAR_` prefix — see [`.env.example`](.env.example).
+The container refuses to start unless a password (`SIDECAR_PASSWORD` or `SIDECAR_PASSWORD_HASH`) is
+set. The Firefly connection, importer URL and Telegram credentials can be set either by environment
+variable or in the Settings page; a value fixed by the environment is shown read-only.
 
 ## Security
 
-The configs contain the bank PIN, the FinTS persistence string and the Firefly token in
-cleartext, so the companion is treated as a secret-editing application:
+The logins hold the bank PIN, the FinTS persistence string and (globally) the Firefly token, so the
+companion is a secret-editing application:
 
-- Redaction runs on every stored response body, log line and notification, built from the
+- Authentication is required and enforced at startup.
+- Secrets are never sent to the browser; an empty password field on save keeps the stored value.
+- Every stored response excerpt and every notification is passed through redaction built from the
   current secrets.
-- Authentication is required by default: a single-user password login, or a trusted-network
-  bypass evaluated against the direct socket peer only (never `X-Forwarded-For`).
-- No secrets are stored in the database. Password fields are masked in the UI, and an unchanged
-  password field on save preserves the stored secret.
-- The container ships read-only with `cap_drop: ALL` and a non-root user, and has no host port
-  mapping.
+- No host port mapping — expose only via a reverse proxy on a shared network.
 
 ## Development
 
 ```bash
-python -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
-pytest
-SIDECAR_TRUSTED_NETWORKS=127.0.0.1/32 SIDECAR_BEHIND_TLS=false \
-  uvicorn app.asgi:app --reload
+composer install
+vendor/bin/phpunit
+SIDECAR_PASSWORD=dev SIDECAR_BEHIND_TLS=false php -S localhost:8080 -t public
 ```
 
-Tests run without a real bank: recorded importer HTML fixtures under
-[`tests/fixtures/importer/`](tests/fixtures/importer/) and an in-process importer stub drive the
-detector, the runner and the full ASGI app.
+Tests run without a real bank or importer: the config renderer, the outcome detector, the validator,
+the redactor and the scheduler are covered with unit tests and in-memory SQLite.
 
 ## Versioning
 
-The project follows [Semantic Versioning](https://semver.org/). A git tag `vX.Y.Z` triggers a
-CI build that publishes the image tagged `X.Y.Z`, `X.Y` and `latest`. Notable changes are
-recorded in [CHANGELOG.md](CHANGELOG.md).
-
-## Built with Claude Code
-
-This project was created and is maintained with [Claude Code](https://claude.com/claude-code).
+[Semantic Versioning](https://semver.org/). A git tag `vX.Y.Z` triggers a CI build that publishes the
+image tagged `X.Y.Z`, `X.Y` and `latest`.
 
 ## License
 
-MIT — see [pyproject.toml](pyproject.toml).
+MIT — see [`LICENSE`](LICENSE).

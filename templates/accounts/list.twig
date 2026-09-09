@@ -1,0 +1,50 @@
+{% extends 'layout.twig' %}
+{% block title %}Accounts — FinTS Companion{% endblock %}
+{% block content %}
+    <h1>Account imports</h1>
+    <div class="card"><div class="btn-row"><a class="btn primary" href="/accounts/new">New account import</a></div></div>
+
+    <div class="card">
+        {% if accounts is empty %}
+            <p class="muted">No account imports yet.</p>
+        {% else %}
+        <table>
+            <tr><th>Account</th><th>Login</th><th>Target</th><th>Schedule</th><th></th></tr>
+            {% for a in accounts %}
+            <tr>
+                <td>
+                    <strong>{{ a.name }}</strong>
+                    {% if not a.enabled %}<span class="badge muted">disabled</span>{% endif %}
+                    <br><span class="muted">{{ a.slug }}.json</span>
+                </td>
+                <td>{{ a.login_name }}</td>
+                <td>
+                    {% if a.selector_type == 'number' %}Card {{ a.bank_account_number }}
+                    {% else %}{{ a.bank_account_iban }}{% endif %}
+                    <br><span class="muted">→ Firefly #{{ a.firefly_account_id }}</span>
+                </td>
+                <td>{% if a.schedule_cron %}<code>{{ a.schedule_cron }}</code>{% else %}<span class="muted">manual</span>{% endif %}</td>
+                <td>
+                    <div class="btn-row">
+                        <form class="inline" method="post" action="/accounts/{{ a.id }}/run">
+                            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                            <button class="btn" type="submit">Run</button>
+                        </form>
+                        <a class="btn" href="/accounts/{{ a.id }}/edit">Edit</a>
+                        <form class="inline" method="post" action="/accounts/{{ a.id }}/duplicate">
+                            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                            <button class="btn" type="submit">Duplicate</button>
+                        </form>
+                        <form class="inline" method="post" action="/accounts/{{ a.id }}/delete"
+                              onsubmit="return confirm('Delete this account import?');">
+                            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                            <button class="btn danger" type="submit">Delete</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% endif %}
+    </div>
+{% endblock %}

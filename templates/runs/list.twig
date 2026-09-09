@@ -1,0 +1,24 @@
+{% extends 'layout.twig' %}
+{% block title %}Runs — FinTS Companion{% endblock %}
+{% block content %}
+    <h1>Run history</h1>
+    <div class="card">
+        {% if runs is empty %}
+            <p class="muted">No runs yet.</p>
+        {% else %}
+        <table>
+            <tr><th>Started</th><th>Account</th><th>Trigger</th><th>Status</th><th>Txns</th><th>Detail</th></tr>
+            {% for r in runs %}
+            <tr>
+                <td>{{ r.started_at }}</td>
+                <td>{{ r.account_name }}</td>
+                <td><span class="muted">{{ r.trigger }}</span></td>
+                <td>{% include 'partials/status_badge.twig' with { status: r.status } %}</td>
+                <td>{{ r.num_transactions is not null ? r.num_transactions : '—' }}</td>
+                <td><a href="/runs/{{ r.id }}">{{ r.outcome_reason|default('view')|slice(0, 70) }}</a></td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% endif %}
+    </div>
+{% endblock %}

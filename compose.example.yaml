@@ -1,43 +1,45 @@
-# Example: the sidecar alongside the unmodified importer image.
-# The two share the config volume; the sidecar triggers runs over HTTP.
+# The companion alongside the unmodified importer image. All three services share the config
+# directory; the companion (web + scheduler) triggers runs over the importer's HTTP interface.
 services:
   firefly-fints-importer:
     image: benkl/firefly-iii-fints-importer:latest
-    container_name: firefly-fints-importer
-    hostname: firefly-fints-importer
     restart: unless-stopped
     volumes:
-      # CRITICAL: /data/configurations, NOT /app/configurations. The automate
-      # path resolves relative to CWD=/ and the wrong mount fails silently.
+      # IMPORTANT: mount at /data/configurations, NOT /app/configurations. The importer's automate
+      # path resolves data/configurations/<name> relative to CWD=/, so the wrong mount fails silently.
       - ./data/configurations:/data/configurations
-    # No host port: reached only from the sidecar over the internal network.
+    # No host port: reached only from the companion over the internal network.
 
   firefly-fints-companion:
     # Published by CI; use `build: .` instead to build locally.
     image: ghcr.io/jwtue/firefly-iii-fints-companion:latest
-    container_name: firefly-fints-companion
-    hostname: firefly-fints-companion
     restart: unless-stopped
     depends_on:
       - firefly-fints-importer
     environment:
-      SIDECAR_CONFIG_DIR: /data/configurations
-      SIDECAR_STATE_DIR: /data/state
-      SIDECAR_IMPORTER_BASE_URL: http://firefly-fints-importer:8080
-      # Pick an auth path (fail-closed). Example: bypass a LAN, or set a password.
-      SIDECAR_TRUSTED_NETWORKS: "172.16.0.0/12"
-      # SIDECAR_PASSWORD_HASH: "$argon2id$..."
-      # SIDECAR_SECRET_KEY: "change-me-min-16-chars"
-      SIDECAR_BEHIND_TLS: "false"  # true once TLS terminates in front
+      SIDECAR_PASSWORD: "change-me"
+      SIDECAR_IMPORTER_URL: "http://firefly-fints-importer:8080"
+      SIDECAR_FIREFLY_URL: "http://firefly:8080"
+      SIDECAR_FIREFLY_TOKEN: "your-firefly-personal-access-token"
+      SIDECAR_BEHIND_TLS: "false"   # set true once TLS terminates in front
+      # SIDECAR_TELEGRAM_BOT_TOKEN: "..."
+      # SIDECAR_TELEGRAM_CHAT_ID: "..."
     volumes:
-      # Same config directory as the importer — single source of truth.
-      - ./data/configurations:/data/configurations
-      # Sidecar-owned state (run history). Survives restarts.
-      - ./data/state:/data/state
-    # Hardening: read-only root fs with a tmpfs for scratch, no extra capabilities.
-    read_only: true
-    tmpfs:
-      - /tmp
-    cap_drop:
-      - ALL
+      - ./data/configurations:/data/configurations   # same directory as the importer
+      - ./data/sidecar:/data/sidecar                 # run history + lock (survives restarts)
     # No host port mapping — expose only via a reverse proxy on a shared network.
+
+  # The scheduler: same image, different command, sharing the state volume.
+  firefly-fints-companion-scheduler:
+    image: ghcr.io/jwtue/firefly-iii-fints-companion:latest
+    restart: unless-stopped
+    command: ["php", "bin/scheduler.php"]
+    depends_on:
+      - firefly-fints-companion
+    environment:
+      SIDECAR_IMPORTER_URL: "http://firefly-fints-importer:8080"
+      SIDECAR_FIREFLY_URL: "http://firefly:8080"
+      SIDECAR_FIREFLY_TOKEN: "your-firefly-personal-access-token"
+    volumes:
+      - ./data/configurations:/data/configurations
+      - ./data/sidecar:/data/sidecar

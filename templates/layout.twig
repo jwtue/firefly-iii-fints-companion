@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}FinTS Companion{% endblock %}</title>
+    <style>
+        :root { --bg:#f6f7f9; --card:#fff; --ink:#1f2430; --muted:#6b7280; --line:#e5e7eb;
+            --brand:#2b6cb0; --ok:#15803d; --warn:#b45309; --err:#b91c1c; }
+        * { box-sizing:border-box; }
+        body { margin:0; font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+            color:var(--ink); background:var(--bg); }
+        header { background:var(--card); border-bottom:1px solid var(--line); }
+        nav { max-width:960px; margin:0 auto; display:flex; gap:.25rem; align-items:center;
+            padding:.5rem 1rem; flex-wrap:wrap; }
+        nav .brand { font-weight:700; margin-right:1rem; }
+        nav a { padding:.4rem .7rem; border-radius:6px; color:var(--ink); text-decoration:none; }
+        nav a:hover { background:var(--bg); }
+        nav a.active { background:var(--brand); color:#fff; }
+        nav .spacer { margin-left:auto; }
+        main { max-width:960px; margin:1.5rem auto; padding:0 1rem; }
+        h1 { font-size:1.4rem; margin:.2rem 0 1rem; }
+        h2 { font-size:1.1rem; margin:1.5rem 0 .6rem; }
+        .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+            padding:1rem 1.2rem; margin-bottom:1rem; }
+        table { width:100%; border-collapse:collapse; }
+        th,td { text-align:left; padding:.5rem .6rem; border-bottom:1px solid var(--line); vertical-align:top; }
+        th { color:var(--muted); font-weight:600; font-size:.85rem; }
+        .muted { color:var(--muted); }
+        .btn { display:inline-block; padding:.45rem .8rem; border-radius:6px; border:1px solid var(--line);
+            background:var(--card); color:var(--ink); text-decoration:none; cursor:pointer; font-size:.9rem; }
+        .btn.primary { background:var(--brand); color:#fff; border-color:var(--brand); }
+        .btn.danger { color:var(--err); border-color:#f0c2c2; }
+        .btn-row { display:flex; gap:.4rem; flex-wrap:wrap; align-items:center; }
+        form.inline { display:inline; }
+        label { display:block; font-weight:600; margin:.8rem 0 .2rem; }
+        input[type=text], input[type=password], select, textarea { width:100%; padding:.5rem;
+            border:1px solid var(--line); border-radius:6px; font:inherit; }
+        .hint { color:var(--muted); font-size:.85rem; margin-top:.2rem; }
+        .field-error { color:var(--err); font-size:.85rem; margin-top:.2rem; }
+        .badge { display:inline-block; padding:.1rem .5rem; border-radius:999px; font-size:.8rem; font-weight:600; }
+        .badge.ok { background:#dcfce7; color:var(--ok); }
+        .badge.err { background:#fee2e2; color:var(--err); }
+        .badge.warn { background:#fef3c7; color:var(--warn); }
+        .badge.muted { background:var(--line); color:var(--muted); }
+        .flash { padding:.6rem .9rem; border-radius:8px; margin-bottom:.6rem; }
+        .flash.success { background:#dcfce7; color:var(--ok); }
+        .flash.error { background:#fee2e2; color:var(--err); }
+        .flash.warning { background:#fef3c7; color:var(--warn); }
+        pre { background:#0f172a; color:#e2e8f0; padding:.8rem; border-radius:8px; overflow:auto; font-size:.82rem; }
+        .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 1rem; }
+        @media (max-width:640px){ .grid2 { grid-template-columns:1fr; } }
+        code { background:var(--bg); padding:.1rem .3rem; border-radius:4px; }
+    </style>
+</head>
+<body>
+{% if show_nav is not defined or show_nav %}
+<header>
+    <nav>
+        <span class="brand">FinTS Companion</span>
+        <a href="/" class="{{ current_path() == '/' ? 'active' }}">Dashboard</a>
+        <a href="/logins" class="{{ current_path() starts with '/logins' ? 'active' }}">Logins</a>
+        <a href="/accounts" class="{{ current_path() starts with '/accounts' ? 'active' }}">Accounts</a>
+        <a href="/runs" class="{{ current_path() starts with '/runs' ? 'active' }}">Runs</a>
+        <a href="/settings" class="{{ current_path() starts with '/settings' ? 'active' }}">Settings</a>
+        <span class="spacer"></span>
+        <form method="post" action="/logout" class="inline">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button class="btn" type="submit">Log out</button>
+        </form>
+    </nav>
+</header>
+{% endif %}
+<main>
+    {% for f in flash() %}
+        <div class="flash {{ f.type }}">{{ f.message }}</div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+</main>
+</body>
+</html>

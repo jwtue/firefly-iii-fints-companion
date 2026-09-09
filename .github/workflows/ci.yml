@@ -1,7 +1,6 @@
 name: ci
 
 # Test on every push/PR; build & push the image to GHCR on main and tags.
-# Runs on GitHub-hosted runners (free for public repositories).
 on:
   push:
     branches: [main]
@@ -19,14 +18,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
         with:
-          python-version: '3.12'
-          cache: pip
-      - name: Install
-        run: pip install -e ".[dev]"
+          php-version: '8.4'
+          extensions: pdo_sqlite
+          coverage: none
+      - name: Validate composer.json
+        run: composer validate --strict
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+      - name: Lint
+        run: find src bin public -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Run tests
-        run: pytest -q
+        run: vendor/bin/phpunit
 
   build-and-push:
     needs: test
@@ -63,8 +68,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          # arm64: the deployment target is a Raspberry Pi (cross-built via QEMU).
-          platforms: linux/arm64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
