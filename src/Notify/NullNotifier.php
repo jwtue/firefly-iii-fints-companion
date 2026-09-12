@@ -15,4 +15,9 @@ final class NullNotifier implements Notifier
     public function send(string $title, string $message): void
     {
     }
+
+    public function test(): array
+    {
+        return ['ok' => false, 'detail' => 'not configured'];
+    }
 }

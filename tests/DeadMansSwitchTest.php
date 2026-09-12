@@ -28,6 +28,11 @@ final class CountingNotifier implements Notifier
     {
         $this->sends++;
     }
+
+    public function test(): array
+    {
+        return ['ok' => true, 'detail' => ''];
+    }
 }
 
 final class DeadMansSwitchTest extends TestCase

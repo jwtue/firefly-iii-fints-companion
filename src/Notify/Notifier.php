@@ -14,4 +14,11 @@ interface Notifier
 
     /** Whether this channel is configured and will actually deliver. */
     public function isConfigured(): bool;
+
+    /**
+     * Send a test message and report whether delivery actually succeeded.
+     *
+     * @return array{ok: bool, detail: string}
+     */
+    public function test(): array;
 }

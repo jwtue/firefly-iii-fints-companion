@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http;
 
 use App\Config\ConfigSync;
+use App\Config\Schedule;
 use App\Config\Validator;
 use App\Model\AccountRepository;
 use App\Model\LoginRepository;
@@ -168,6 +169,7 @@ final class AccountsController
             'errors' => $errors,
             'is_new' => $isNew,
             'logins' => $this->logins->all(),
+            'schedule' => Schedule::fromCron((string) ($account['schedule_cron'] ?? '')),
         ]);
     }
 
@@ -191,7 +193,7 @@ final class AccountsController
             'description_regex_replace' => (string) ($body['description_regex_replace'] ?? ''),
             'force_mt940' => isset($body['force_mt940']) ? 1 : 0,
             'skip_transaction_review' => isset($body['skip_transaction_review']) ? 1 : 0,
-            'schedule_cron' => trim((string) ($body['schedule_cron'] ?? '')),
+            'schedule_cron' => Schedule::toCron($body),
             'enabled' => isset($body['enabled']) ? 1 : 0,
         ];
     }

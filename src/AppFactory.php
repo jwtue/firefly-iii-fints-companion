@@ -103,5 +103,6 @@ final class AppFactory
 
         $app->get('/settings', [SettingsController::class, 'edit']);
         $app->post('/settings', [SettingsController::class, 'update']);
+        $app->post('/settings/test', [SettingsController::class, 'testTelegram']);
     }
 }

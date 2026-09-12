@@ -76,10 +76,33 @@
             </div>
             <div class="hint">{{ t('accountform.window_hint') }}</div>
 
-            <label for="schedule_cron">{{ t('accountform.schedule') }}</label>
-            <input type="text" id="schedule_cron" name="schedule_cron" value="{{ account.schedule_cron|default('') }}"
-                   placeholder="{{ t('accountform.schedule_placeholder') }}">
-            {% if errors.schedule_cron %}<div class="field-error">{{ t(errors.schedule_cron) }}</div>{% endif %}
+            <label for="schedule_freq">{{ t('accountform.schedule') }}</label>
+            <select id="schedule_freq" name="schedule_freq" onchange="schedFreq()">
+                <option value="off"    {{ schedule.freq == 'off' ? 'selected' }}>{{ t('accountform.freq_off') }}</option>
+                <option value="hourly" {{ schedule.freq == 'hourly' ? 'selected' }}>{{ t('accountform.freq_hourly') }}</option>
+                <option value="daily"  {{ schedule.freq == 'daily' ? 'selected' }}>{{ t('accountform.freq_daily') }}</option>
+                <option value="weekly" {{ schedule.freq == 'weekly' ? 'selected' }}>{{ t('accountform.freq_weekly') }}</option>
+                <option value="custom" {{ schedule.freq == 'custom' ? 'selected' }}>{{ t('accountform.freq_custom') }}</option>
+            </select>
+            <div class="grid2">
+                <div id="sched_time">
+                    <label for="schedule_time">{{ t('accountform.schedule_time') }}</label>
+                    <input type="time" id="schedule_time" name="schedule_time" value="{{ schedule.time }}">
+                </div>
+                <div id="sched_weekday">
+                    <label for="schedule_weekday">{{ t('accountform.schedule_weekday') }}</label>
+                    <select id="schedule_weekday" name="schedule_weekday">
+                        {% for val, key in {'1':'wd_mon','2':'wd_tue','3':'wd_wed','4':'wd_thu','5':'wd_fri','6':'wd_sat','0':'wd_sun'} %}
+                            <option value="{{ val }}" {{ schedule.weekday == val ? 'selected' }}>{{ t('accountform.' ~ key) }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div id="sched_custom">
+                <label for="schedule_cron_custom">{{ t('accountform.schedule_cron_custom') }}</label>
+                <input type="text" id="schedule_cron_custom" name="schedule_cron_custom" value="{{ schedule.custom }}" placeholder="0 1 * * *">
+                {% if errors.schedule_cron %}<div class="field-error">{{ t(errors.schedule_cron) }}</div>{% endif %}
+            </div>
         </div>
 
         <div class="card">
@@ -109,5 +132,13 @@
             document.getElementById('sel_number').style.display = number ? 'block' : 'none';
         }
         selType();
+
+        function schedFreq() {
+            var f = document.getElementById('schedule_freq').value;
+            document.getElementById('sched_time').style.display = (f === 'daily' || f === 'weekly') ? 'block' : 'none';
+            document.getElementById('sched_weekday').style.display = (f === 'weekly') ? 'block' : 'none';
+            document.getElementById('sched_custom').style.display = (f === 'custom') ? 'block' : 'none';
+        }
+        schedFreq();
     </script>
 {% endblock %}

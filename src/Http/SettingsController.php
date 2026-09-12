@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http;
 
+use App\Importer\ImporterTransport;
+use App\Notify\TelegramNotifier;
 use App\Support\Flash;
 use App\Support\Settings;
 use Psr\Http\Message\ResponseInterface;
@@ -24,7 +26,28 @@ final class SettingsController
     public function __construct(
         private readonly Twig $view,
         private readonly Settings $settings,
+        private readonly ImporterTransport $transport,
     ) {
+    }
+
+    /**
+     * Send a Telegram test message using the values in the form (falling back to the stored ones) and
+     * report whether it actually arrived. Does not save the settings.
+     */
+    public function testTelegram(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $body = (array) $request->getParsedBody();
+        $token = trim((string) ($body['telegram_bot_token'] ?? '')) ?: $this->settings->get('telegram_bot_token');
+        $chat = trim((string) ($body['telegram_chat_id'] ?? '')) ?: $this->settings->get('telegram_chat_id');
+
+        $result = (new TelegramNotifier($this->transport, $token, $chat))->test();
+        if ($result['ok']) {
+            Flash::add('success', 'flash.telegram_test_ok');
+        } else {
+            Flash::add('error', 'flash.telegram_test_fail', ['detail' => $result['detail']]);
+        }
+
+        return $response->withHeader('Location', '/settings')->withStatus(302);
     }
 
     public function edit(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
