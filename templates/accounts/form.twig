@@ -76,6 +76,7 @@
             </div>
             <div class="hint">{{ t('accountform.window_hint') }}</div>
 
+            {% if not scheduler_enabled %}<div class="flash warning">{{ t('accountform.scheduler_off') }}</div>{% endif %}
             <label for="schedule_freq">{{ t('accountform.schedule') }}</label>
             <select id="schedule_freq" name="schedule_freq" onchange="schedFreq()">
                 <option value="off"    {{ schedule.freq == 'off' ? 'selected' }}>{{ t('accountform.freq_off') }}</option>

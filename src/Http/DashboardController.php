@@ -8,6 +8,7 @@ use App\Config\ConfigImporter;
 use App\Model\AccountRepository;
 use App\Model\LoginRepository;
 use App\Model\RunRepository;
+use App\Scheduler\Scheduler;
 use App\Support\Settings;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -44,6 +45,8 @@ final class DashboardController
             'recent_runs' => $this->runs->recent(15),
             'firefly_configured' => $this->settings->get('firefly_url') !== '' && $this->settings->get('firefly_token') !== '',
             'importer_configured' => $this->settings->get('importer_url') !== '',
+            'scheduler_enabled' => Scheduler::enabledByEnv(),
+            'has_schedules' => (bool) array_filter($accounts, static fn ($a) => ($a['schedule_cron'] ?? '') !== ''),
         ]);
     }
 }

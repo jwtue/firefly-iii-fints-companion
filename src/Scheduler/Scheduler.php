@@ -30,6 +30,15 @@ final class Scheduler
     }
 
     /**
+     * Whether the background scheduler is enabled, mirroring the container entrypoint: on by default,
+     * off only when SIDECAR_RUN_SCHEDULER is explicitly "false". Lets the UI warn when it is off.
+     */
+    public static function enabledByEnv(): bool
+    {
+        return strtolower((string) (getenv('SIDECAR_RUN_SCHEDULER') ?: 'true')) !== 'false';
+    }
+
+    /**
      * The scheduled accounts due at $now. An account is due when its cron fires in the current minute
      * and it has not already been run this minute. Deliberately NOT "any missed schedule since the
      * last run": that would fire every schedule once immediately on the first tick after start, which

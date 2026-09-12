@@ -11,6 +11,10 @@
         </div>
     {% endif %}
 
+    {% if not scheduler_enabled %}
+        <div class="flash warning">{{ t('dashboard.scheduler_off') }}</div>
+    {% endif %}
+
     {% if importable > 0 %}
         <div class="flash success">
             {{ t('import.banner', { count: importable }) }}

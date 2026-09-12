@@ -95,6 +95,19 @@ final class SchedulerTest extends TestCase
         self::assertSame([], $this->scheduler->dueAccounts($now));
     }
 
+    public function test_enabled_by_env_defaults_on_and_only_false_disables(): void
+    {
+        putenv('SIDECAR_RUN_SCHEDULER');            // unset → default on
+        self::assertTrue(Scheduler::enabledByEnv());
+        putenv('SIDECAR_RUN_SCHEDULER=false');
+        self::assertFalse(Scheduler::enabledByEnv());
+        putenv('SIDECAR_RUN_SCHEDULER=FALSE');      // case-insensitive
+        self::assertFalse(Scheduler::enabledByEnv());
+        putenv('SIDECAR_RUN_SCHEDULER=true');
+        self::assertTrue(Scheduler::enabledByEnv());
+        putenv('SIDECAR_RUN_SCHEDULER');            // cleanup
+    }
+
     public function test_runDue_invokes_the_runner_for_due_accounts(): void
     {
         $id = $this->account('a', '* * * * *');

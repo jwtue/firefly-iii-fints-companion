@@ -11,6 +11,7 @@ use App\Model\AccountRepository;
 use App\Model\LoginRepository;
 use App\Runner\Runner;
 use App\Runner\RunnerBusyException;
+use App\Scheduler\Scheduler;
 use App\Support\Flash;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -170,6 +171,7 @@ final class AccountsController
             'is_new' => $isNew,
             'logins' => $this->logins->all(),
             'schedule' => Schedule::fromCron((string) ($account['schedule_cron'] ?? '')),
+            'scheduler_enabled' => Scheduler::enabledByEnv(),
         ]);
     }
 
