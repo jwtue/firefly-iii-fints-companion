@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App;
 
 use App\Auth\AuthMiddleware;
+use App\Config\Schedule;
 use App\Http\AccountsController;
 use App\Http\AuthController;
 use App\Http\CsrfMiddleware;
@@ -48,6 +49,20 @@ final class AppFactory
         $env->addFunction(new TwigFunction('t', static fn (string $key, array $params = []): string => $translator->t($key, $params)));
         $env->addFunction(new TwigFunction('locale', static fn (): string => $translator->locale()));
         $env->addFunction(new TwigFunction('lang_available', static fn (): array => $translator->available()));
+        // Human-readable schedule label from a cron string (e.g. "Daily 06:30"), for the lists.
+        $env->addFunction(new TwigFunction('schedule_label', static function (string $cron) use ($translator): string {
+            $s = Schedule::fromCron($cron);
+            $wd = ['0' => 'wd_sun', '1' => 'wd_mon', '2' => 'wd_tue', '3' => 'wd_wed', '4' => 'wd_thu', '5' => 'wd_fri', '6' => 'wd_sat'];
+
+            return match ($s['freq']) {
+                'hourly' => $translator->t('accountform.freq_hourly'),
+                'daily' => $translator->t('accountform.freq_daily') . ' ' . $s['time'],
+                'weekly' => $translator->t('accountform.freq_weekly') . ' '
+                    . $translator->t('accountform.' . ($wd[$s['weekday']] ?? 'wd_mon')) . ' ' . $s['time'],
+                'custom' => $translator->t('accountform.freq_custom') . ': ' . $cron,
+                default => $translator->t('common.manual'),
+            };
+        }));
 
         self::routes($app);
 

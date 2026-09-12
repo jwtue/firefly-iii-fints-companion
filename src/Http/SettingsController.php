@@ -22,6 +22,13 @@ final class SettingsController
 {
     private const PLAIN = ['firefly_url', 'importer_url', 'telegram_chat_id'];
     private const SECRET = ['firefly_token', 'telegram_bot_token'];
+    /** Notification category toggles => default when never configured. */
+    private const NOTIFY = [
+        'notify_on_failure' => true,
+        'notify_on_tan' => true,
+        'notify_on_success' => false,
+        'notify_on_missing' => true,
+    ];
 
     public function __construct(
         private readonly Twig $view,
@@ -63,6 +70,11 @@ final class SettingsController
             }
         }
 
+        foreach (self::NOTIFY as $key => $default) {
+            $values[$key] = $this->settings->bool($key, $default);
+            $fromEnv[$key] = $this->settings->isFromEnv($key);
+        }
+
         return $this->view->render($response, 'settings.twig', ['values' => $values, 'from_env' => $fromEnv]);
     }
 
@@ -82,6 +94,11 @@ final class SettingsController
             // An empty secret field keeps the stored value.
             if ($value !== '') {
                 $this->settings->set($key, $value);
+            }
+        }
+        foreach (array_keys(self::NOTIFY) as $key) {
+            if (!$this->settings->isFromEnv($key)) {
+                $this->settings->set($key, isset($body[$key]) ? '1' : '0');
             }
         }
         Flash::add('success', 'flash.settings_saved');

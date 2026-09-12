@@ -23,7 +23,7 @@
                     {% else %}{{ a.bank_account_iban }}{% endif %}
                     <br><span class="muted">{{ t('accounts.to_firefly', { id: a.firefly_account_id }) }}</span>
                 </td>
-                <td>{% if a.schedule_cron %}<code>{{ a.schedule_cron }}</code>{% else %}<span class="muted">{{ t('common.manual') }}</span>{% endif %}</td>
+                <td>{% if a.schedule_cron %}{{ schedule_label(a.schedule_cron) }}{% else %}<span class="muted">{{ t('common.manual') }}</span>{% endif %}</td>
                 <td>
                     <div class="btn-row">
                         <form class="inline" method="post" action="/accounts/{{ a.id }}/run">

@@ -36,6 +36,16 @@
                    {{ from_env.telegram_chat_id ? 'readonly' }}>
             <div class="hint">{{ t('settings.telegram_hint') }}</div>
 
+            <div style="margin-top:.6rem;">
+                <div class="hint">{{ t('settings.notify_on') }}</div>
+                {% for key in ['notify_on_failure', 'notify_on_tan', 'notify_on_success', 'notify_on_missing'] %}
+                    <label class="hint" style="display:block;">
+                        <input type="checkbox" name="{{ key }}" {{ values[key] ? 'checked' }} {{ from_env[key] ? 'disabled' }}>
+                        {{ t('settings.' ~ key) }}
+                    </label>
+                {% endfor %}
+            </div>
+
             <details class="guide">
                 <summary>{{ t('settings.telegram_guide') }}</summary>
                 <ol>

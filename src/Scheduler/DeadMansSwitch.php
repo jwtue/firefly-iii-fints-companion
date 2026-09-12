@@ -7,6 +7,7 @@ namespace App\Scheduler;
 use App\Model\AccountRepository;
 use App\Model\RunRepository;
 use App\Notify\Notifier;
+use App\Support\Settings;
 use Cron\CronExpression;
 use DateTimeImmutable;
 use PDO;
@@ -28,6 +29,7 @@ final class DeadMansSwitch
         private readonly AccountRepository $accounts,
         private readonly RunRepository $runs,
         private readonly Notifier $notifier,
+        private readonly Settings $settings,
         private readonly int $graceMinutes = 60,
         private readonly int $repeatHours = 24,
     ) {
@@ -47,6 +49,14 @@ final class DeadMansSwitch
             $cron = new CronExpression((string) $account['schedule_cron']);
             $previousDue = DateTimeImmutable::createFromMutable($cron->getPreviousRunDate($now, 0, true));
 
+            // A schedule only counts from when the account was configured. A freshly created or edited
+            // schedule whose most recent due time lies before it even existed is not a missed run —
+            // otherwise every account reports "not run" right after setup.
+            $configuredAt = self::parseUtc((string) ($account['updated_at'] ?? ''));
+            if ($configuredAt !== null && $previousDue <= $configuredAt) {
+                continue;
+            }
+
             // Too soon after the scheduled moment to judge — a run may be in progress right now.
             if ($now->getTimestamp() - $previousDue->getTimestamp() < $graceSeconds) {
                 continue;
@@ -63,6 +73,9 @@ final class DeadMansSwitch
     /** Send alerts for overdue accounts (de-duplicated) and clear state for recovered ones. */
     public function run(DateTimeImmutable $now): void
     {
+        if (!$this->settings->bool('notify_on_missing', true)) {
+            return;
+        }
         $overdueIds = [];
         foreach ($this->overdueAccounts($now) as $account) {
             $id = (int) $account['id'];
@@ -79,6 +92,19 @@ final class DeadMansSwitch
         // Recovered accounts: clear their alert state so a future outage alerts immediately.
         $this->pdo->exec('DELETE FROM monitor_state WHERE account_id NOT IN ('
             . ($overdueIds === [] ? '0' : implode(',', array_map('intval', array_keys($overdueIds)))) . ')');
+    }
+
+    private static function parseUtc(string $value): ?DateTimeImmutable
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+        try {
+            return new DateTimeImmutable($value . ' UTC');
+        } catch (\Exception) {
+            return null;
+        }
     }
 
     private function shouldAlert(int $accountId, DateTimeImmutable $now): bool

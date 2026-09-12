@@ -41,7 +41,7 @@
             <tr>
                 <td><strong>{{ a.name }}</strong><br><span class="muted">{{ a.slug }}.json</span></td>
                 <td>{{ a.login_name }}</td>
-                <td>{% if a.schedule_cron %}<code>{{ a.schedule_cron }}</code>{% else %}<span class="muted">{{ t('common.manual') }}</span>{% endif %}</td>
+                <td>{% if a.schedule_cron %}{{ schedule_label(a.schedule_cron) }}{% else %}<span class="muted">{{ t('common.manual') }}</span>{% endif %}</td>
                 <td>
                     {% if a.last_run %}
                         {% include 'partials/status_badge.twig' with { status: a.last_run.status } %}

@@ -22,6 +22,10 @@ final class Settings
         'importer_supports_json' => 'SIDECAR_IMPORTER_SUPPORTS_JSON',
         'telegram_bot_token'     => 'SIDECAR_TELEGRAM_BOT_TOKEN',
         'telegram_chat_id'       => 'SIDECAR_TELEGRAM_CHAT_ID',
+        'notify_on_failure'      => 'SIDECAR_NOTIFY_ON_FAILURE',
+        'notify_on_tan'          => 'SIDECAR_NOTIFY_ON_TAN',
+        'notify_on_success'      => 'SIDECAR_NOTIFY_ON_SUCCESS',
+        'notify_on_missing'      => 'SIDECAR_NOTIFY_ON_MISSING',
     ];
 
     public function __construct(private readonly PDO $pdo)

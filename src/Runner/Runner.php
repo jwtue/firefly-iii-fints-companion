@@ -105,6 +105,13 @@ final class Runner implements RunnerInterface
 
         if (!$outcome->isSuccess()) {
             $this->notify($account, $login, $outcome);
+        } elseif ($trigger === 'schedule' && $this->settings->bool('notify_on_success')) {
+            // Opt-in success notification for automated runs (off by default, to avoid noise).
+            $count = $outcome->numTransactions;
+            $this->notifier->send(
+                "✅ Import OK: {$account['name']}",
+                $count !== null ? "$count transaction(s) imported." : 'Import completed.'
+            );
         }
 
         return $outcome;
@@ -117,11 +124,17 @@ final class Runner implements RunnerInterface
     private function notify(array $account, array $login, Outcome $outcome): void
     {
         if ($outcome->needsTan()) {
+            if (!$this->settings->bool('notify_on_tan', true)) {
+                return;
+            }
             $title = "🔐 TAN required: {$account['name']}";
             $message = "The login \"{$login['name']}\" needs a fresh TAN.\n"
                 . "Run this account once manually through the importer UI, then paste the new "
                 . "persistence string into the login — every account under it will use it.";
         } else {
+            if (!$this->settings->bool('notify_on_failure', true)) {
+                return;
+            }
             $title = "❌ Import failed: {$account['name']}";
             $message = "Login \"{$login['name']}\": {$outcome->reason}";
         }

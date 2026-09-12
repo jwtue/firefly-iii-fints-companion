@@ -10,6 +10,7 @@ use App\Model\RunRepository;
 use App\Notify\Notifier;
 use App\Scheduler\DeadMansSwitch;
 use App\Support\Database;
+use App\Support\Settings;
 use DateTimeImmutable;
 use PDO;
 use PHPUnit\Framework\TestCase;
@@ -42,6 +43,7 @@ final class DeadMansSwitchTest extends TestCase
     private RunRepository $runs;
     private CountingNotifier $notifier;
     private DeadMansSwitch $switch;
+    private Settings $settings;
     private int $loginId;
 
     protected function setUp(): void
@@ -51,8 +53,9 @@ final class DeadMansSwitchTest extends TestCase
         $this->accounts = new AccountRepository($this->pdo);
         $this->runs = new RunRepository($this->pdo);
         $this->notifier = new CountingNotifier();
+        $this->settings = new Settings($this->pdo);
         // grace 0 so an every-minute schedule is immediately judgeable in the test.
-        $this->switch = new DeadMansSwitch($this->pdo, $this->accounts, $this->runs, $this->notifier, 0, 24);
+        $this->switch = new DeadMansSwitch($this->pdo, $this->accounts, $this->runs, $this->notifier, $this->settings, 0, 24);
         $logins = new LoginRepository($this->pdo);
         $this->loginId = $logins->create(['name' => 'L', 'bank_url' => 'u', 'bank_code' => 'c', 'bank_username' => 'x', 'bank_password' => 'p']);
     }
@@ -65,15 +68,30 @@ final class DeadMansSwitchTest extends TestCase
         ]);
     }
 
+    /** Simulate an account configured a while ago, so a passed due time counts as a real miss. */
+    private function backdate(int $id): void
+    {
+        $this->pdo->exec("UPDATE accounts SET updated_at = datetime('now', '-2 days') WHERE id = $id");
+    }
+
+    public function test_not_overdue_for_a_freshly_configured_account(): void
+    {
+        // updated_at = now, so no scheduled time has passed since setup — not a missed run.
+        $this->account('a', '* * * * *');
+        self::assertSame([], $this->switch->overdueAccounts(new DateTimeImmutable('now')));
+    }
+
     public function test_overdue_when_scheduled_but_never_succeeded(): void
     {
         $id = $this->account('a', '* * * * *');
+        $this->backdate($id);
         self::assertSame([$id], array_column($this->switch->overdueAccounts(new DateTimeImmutable('now')), 'id'));
     }
 
     public function test_not_overdue_after_a_recent_success(): void
     {
         $id = $this->account('a', '* * * * *');
+        $this->backdate($id);
         $runId = $this->runs->start($id, 'a', $this->loginId, 'schedule');
         $this->runs->finish($runId, 'success', 'ok', 200, '', 3, 100);
         self::assertSame([], $this->switch->overdueAccounts(new DateTimeImmutable('now')));
@@ -87,16 +105,27 @@ final class DeadMansSwitchTest extends TestCase
 
     public function test_alert_is_sent_once_then_deduplicated(): void
     {
-        $this->account('a', '* * * * *');
+        $id = $this->account('a', '* * * * *');
+        $this->backdate($id);
         $now = new DateTimeImmutable('now');
         $this->switch->run($now);
         $this->switch->run($now);
         self::assertSame(1, $this->notifier->sends);
     }
 
+    public function test_no_alert_when_missing_category_disabled(): void
+    {
+        $id = $this->account('a', '* * * * *');
+        $this->backdate($id);
+        $this->settings->set('notify_on_missing', '0');
+        $this->switch->run(new DateTimeImmutable('now'));
+        self::assertSame(0, $this->notifier->sends);
+    }
+
     public function test_recovery_clears_alert_state(): void
     {
         $id = $this->account('a', '* * * * *');
+        $this->backdate($id);
         $now = new DateTimeImmutable('now');
         $this->switch->run($now);                 // overdue -> alert, state stored
         self::assertSame(1, $this->notifier->sends);

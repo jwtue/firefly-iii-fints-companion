@@ -79,6 +79,7 @@ final class Container
                 $c->get(AccountRepository::class),
                 $c->get(RunRepository::class),
                 $c->get(Notifier::class),
+                $c->get(Settings::class),
                 (int) (getenv('SIDECAR_DEADMAN_GRACE_MINUTES') ?: 60),
                 (int) (getenv('SIDECAR_DEADMAN_REPEAT_HOURS') ?: 24),
             )),
