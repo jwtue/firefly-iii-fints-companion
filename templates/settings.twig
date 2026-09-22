@@ -11,6 +11,11 @@
             <input type="text" id="importer_url" name="importer_url" value="{{ values.importer_url }}"
                    placeholder="http://firefly-fints-importer:8080" {{ from_env.importer_url ? 'readonly' }}>
             <div class="hint">{{ t('settings.importer_url_hint') }}{% if from_env.importer_url %} {{ t('settings.env_fixed') }}{% endif %}</div>
+
+            <label for="importer_public_url">{{ t('settings.importer_public_url') }}</label>
+            <input type="text" id="importer_public_url" name="importer_public_url" value="{{ values.importer_public_url }}"
+                   placeholder="https://importer.example.org" {{ from_env.importer_public_url ? 'readonly' }}>
+            <div class="hint">{{ t('settings.importer_public_url_hint') }}{% if from_env.importer_public_url %} {{ t('settings.env_fixed') }}{% endif %}</div>
         </div>
 
         <div class="card">

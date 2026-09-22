@@ -2,7 +2,13 @@
 {% block title %}{{ t('accounts.title') }} — {{ t('nav.brand') }}{% endblock %}
 {% block content %}
     <h1>{{ t('accounts.title') }}</h1>
-    <div class="card"><div class="btn-row"><a class="btn primary" href="/accounts/new">{{ t('dashboard.new_account') }}</a></div></div>
+    <div class="card">
+        <div class="btn-row">
+            <a class="btn primary" href="/accounts/new">{{ t('dashboard.new_account') }}</a>
+            {% if importer_pub() %}<a class="btn" href="{{ importer_pub() }}/" target="_blank" rel="noopener">{{ t('accounts.open_importer') }}</a>{% endif %}
+        </div>
+        {% if importer_pub() %}<div class="hint" style="margin-top:.5rem;">{{ t('accounts.wizard_hint') }}</div>{% endif %}
+    </div>
 
     <div class="card">
         {% if accounts is empty %}
@@ -26,6 +32,7 @@
                 <td>{% if a.schedule_cron %}{{ schedule_label(a.schedule_cron) }}{% else %}<span class="muted">{{ t('common.manual') }}</span>{% endif %}</td>
                 <td>
                     <div class="btn-row">
+                        {% if importer_pub() %}<a class="btn" href="{{ importer_pub() }}/?config={{ a.slug }}.json" target="_blank" rel="noopener" title="{{ t('accounts.wizard_title') }}">{{ t('accounts.wizard') }}</a>{% endif %}
                         <form class="inline" method="post" action="/accounts/{{ a.id }}/run">
                             <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
                             <button class="btn" type="submit">{{ t('action.run') }}</button>

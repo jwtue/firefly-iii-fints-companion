@@ -6,6 +6,7 @@ namespace App;
 
 use App\Auth\AuthMiddleware;
 use App\Config\Schedule;
+use App\Support\Settings;
 use App\Http\AccountsController;
 use App\Http\AuthController;
 use App\Http\CsrfMiddleware;
@@ -63,6 +64,9 @@ final class AppFactory
                 default => $translator->t('common.manual'),
             };
         }));
+        // Browser-reachable importer URL (for the wizard deep-links); empty hides the wizard links.
+        $importerPublicUrl = rtrim($container->get(Settings::class)->get('importer_public_url'), '/');
+        $env->addFunction(new TwigFunction('importer_pub', static fn (): string => $importerPublicUrl));
 
         self::routes($app);
 

@@ -20,7 +20,7 @@ use Slim\Views\Twig;
  */
 final class SettingsController
 {
-    private const PLAIN = ['firefly_url', 'importer_url', 'telegram_chat_id'];
+    private const PLAIN = ['firefly_url', 'importer_url', 'importer_public_url', 'telegram_chat_id'];
     private const SECRET = ['firefly_token', 'telegram_bot_token'];
     /** Notification category toggles => default when never configured. */
     private const NOTIFY = [

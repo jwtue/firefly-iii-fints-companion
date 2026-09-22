@@ -19,6 +19,7 @@ final class Settings
         'firefly_url'            => 'SIDECAR_FIREFLY_URL',
         'firefly_token'          => 'SIDECAR_FIREFLY_TOKEN',
         'importer_url'           => 'SIDECAR_IMPORTER_URL',
+        'importer_public_url'    => 'SIDECAR_IMPORTER_PUBLIC_URL',
         'importer_supports_json' => 'SIDECAR_IMPORTER_SUPPORTS_JSON',
         'telegram_bot_token'     => 'SIDECAR_TELEGRAM_BOT_TOKEN',
         'telegram_chat_id'       => 'SIDECAR_TELEGRAM_CHAT_ID',
