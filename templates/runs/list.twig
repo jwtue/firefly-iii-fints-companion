@@ -10,7 +10,7 @@
             <tr><th>{{ t('runs.col_started') }}</th><th>{{ t('col.account') }}</th><th>{{ t('runs.col_trigger') }}</th><th>{{ t('col.status') }}</th><th>{{ t('runs.col_txns') }}</th><th>{{ t('col.detail') }}</th></tr>
             {% for r in runs %}
             <tr>
-                <td>{{ r.started_at }}</td>
+                <td>{{ localtime(r.started_at) }}</td>
                 <td>{{ r.account_name }}</td>
                 <td><span class="muted">{{ r.trigger }}</span></td>
                 <td>{% include 'partials/status_badge.twig' with { status: r.status } %}</td>

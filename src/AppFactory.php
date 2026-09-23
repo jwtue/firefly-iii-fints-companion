@@ -67,6 +67,20 @@ final class AppFactory
         // Browser-reachable importer URL (for the wizard deep-links); empty hides the wizard links.
         $importerPublicUrl = rtrim($container->get(Settings::class)->get('importer_public_url'), '/');
         $env->addFunction(new TwigFunction('importer_pub', static fn (): string => $importerPublicUrl));
+        // Render a stored UTC timestamp (SQLite datetime('now')) in the configured local timezone.
+        $env->addFunction(new TwigFunction('localtime', static function (?string $utc): string {
+            $utc = trim((string) $utc);
+            if ($utc === '') {
+                return '';
+            }
+            try {
+                return (new \DateTimeImmutable($utc . ' UTC'))
+                    ->setTimezone(new \DateTimeZone(date_default_timezone_get()))
+                    ->format('Y-m-d H:i');
+            } catch (\Exception) {
+                return $utc;
+            }
+        }));
 
         self::routes($app);
 

@@ -20,7 +20,7 @@
                 <td>{{ l.bank_code }}<br><span class="muted">{{ l.bank_username }}</span></td>
                 <td>{{ l.account_count }}</td>
                 <td>
-                    {% if l.persistence_updated_at %}<span class="muted">{{ l.persistence_updated_at }}</span>
+                    {% if l.persistence_updated_at %}<span class="muted">{{ localtime(l.persistence_updated_at) }}</span>
                     {% else %}<span class="badge warn">{{ t('common.never') }}</span>{% endif %}
                 </td>
                 <td>

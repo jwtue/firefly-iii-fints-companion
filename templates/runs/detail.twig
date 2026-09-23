@@ -9,8 +9,8 @@
             <tr><th>{{ t('runs.f_status') }}</th><td>{% include 'partials/status_badge.twig' with { status: run.status } %}</td></tr>
             <tr><th>{{ t('runs.f_reason') }}</th><td>{{ run.outcome_reason ?: '—' }}</td></tr>
             <tr><th>{{ t('runs.f_trigger') }}</th><td>{{ run.trigger }}</td></tr>
-            <tr><th>{{ t('runs.f_started') }}</th><td>{{ run.started_at }}</td></tr>
-            <tr><th>{{ t('runs.f_finished') }}</th><td>{{ run.finished_at ?: '—' }}</td></tr>
+            <tr><th>{{ t('runs.f_started') }}</th><td>{{ localtime(run.started_at) }}</td></tr>
+            <tr><th>{{ t('runs.f_finished') }}</th><td>{{ run.finished_at ? localtime(run.finished_at) : '—' }}</td></tr>
             <tr><th>{{ t('runs.f_duration') }}</th><td>{{ run.duration_ms is not null ? (run.duration_ms ~ ' ms') : '—' }}</td></tr>
             <tr><th>{{ t('runs.f_http') }}</th><td>{{ run.http_status ?: '—' }}</td></tr>
             <tr><th>{{ t('runs.f_txns') }}</th><td>{{ run.num_transactions is not null ? run.num_transactions : '—' }}</td></tr>

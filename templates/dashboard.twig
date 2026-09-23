@@ -45,7 +45,7 @@
                 <td>
                     {% if a.last_run %}
                         {% include 'partials/status_badge.twig' with { status: a.last_run.status } %}
-                        <div class="muted">{{ a.last_run.finished_at }}</div>
+                        <div class="muted">{{ localtime(a.last_run.finished_at) }}</div>
                     {% else %}
                         {% include 'partials/status_badge.twig' with { status: '' } %}
                     {% endif %}
@@ -71,7 +71,7 @@
             <tr><th>{{ t('col.when') }}</th><th>{{ t('col.account') }}</th><th>{{ t('col.status') }}</th><th>{{ t('col.detail') }}</th></tr>
             {% for r in recent_runs %}
             <tr>
-                <td>{{ r.started_at }}</td>
+                <td>{{ localtime(r.started_at) }}</td>
                 <td>{{ r.account_name }}</td>
                 <td>{% include 'partials/status_badge.twig' with { status: r.status } %}</td>
                 <td><a href="/runs/{{ r.id }}">{{ r.outcome_reason|default('—')|slice(0, 80) }}</a></td>
