@@ -14,6 +14,8 @@ services:
     # Published by CI; use `build: .` instead to build locally.
     image: ghcr.io/jwtue/firefly-iii-fints-companion:latest
     restart: unless-stopped
+    # tini as PID 1 reaps any orphaned process (belt-and-braces; the HEALTHCHECK also uses exec form).
+    init: true
     depends_on:
       - firefly-fints-importer
     environment:

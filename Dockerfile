@@ -30,8 +30,10 @@ ENV SIDECAR_DATABASE_PATH=/data/sidecar/sidecar.sqlite \
 
 EXPOSE 8080
 
+# Exec form (not shell): on timeout Docker kills curl itself, so no orphaned curl is reparented to
+# PID 1 (FrankenPHP does not reap children it did not spawn). curl -f already exits non-zero on error.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
-    CMD curl -fsS http://127.0.0.1:8080/healthz || exit 1
+    CMD ["curl", "-fsS", "http://127.0.0.1:8080/healthz"]
 
 # Default command serves the UI and, if SIDECAR_RUN_SCHEDULER=true, runs the scheduler in the same
 # container (all-in-one). Override with `php bin/scheduler.php` for a dedicated scheduler container.
